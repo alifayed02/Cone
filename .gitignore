@@ -1,0 +1,8 @@
+# Directories
+cmake-build-debug/
+cmake-build-debug-visual-studio/
+cmake-build-debug-vs/
+cmake-build-release/
+.idea/
+
+# Files
