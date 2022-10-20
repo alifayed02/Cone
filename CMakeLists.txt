@@ -4,7 +4,7 @@ project(Cone)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_OSX_ARCHITECTURES "x86_64")
 
-add_executable(${PROJECT_NAME} src/Main.cpp src/Core/Cone.cpp src/Core/Cone.hpp src/Common/Utilities.hpp src/Renderer/Window.cpp src/Renderer/Window.hpp src/Renderer/Context.cpp src/Renderer/Context.hpp src/Renderer/Swapchain.cpp src/Renderer/Swapchain.hpp)
+add_executable(${PROJECT_NAME} src/Main.cpp src/Core/Cone.cpp src/Core/Cone.hpp src/Common/Utilities.hpp src/Renderer/Window.cpp src/Renderer/Window.hpp src/Renderer/Context.cpp src/Renderer/Context.hpp src/Renderer/Swapchain.cpp src/Renderer/Swapchain.hpp src/Renderer/Pipeline.cpp src/Renderer/Pipeline.hpp src/Buffer/Vertex.hpp)
 
 target_precompile_headers(${PROJECT_NAME} PRIVATE src/Core/CnPch.hpp)
 

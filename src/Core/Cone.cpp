@@ -1,3 +1,4 @@
+#include "CnPch.hpp"
 #include "Cone.hpp"
 
 void Cone::Init()
