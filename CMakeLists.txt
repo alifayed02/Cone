@@ -4,7 +4,7 @@ project(Cone)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_OSX_ARCHITECTURES "x86_64")
 
-add_executable(${PROJECT_NAME} src/Main.cpp src/Core/Cone.cpp src/Core/Cone.hpp src/Common/Utilities.hpp src/Renderer/Window.cpp src/Renderer/Window.hpp src/Renderer/Context.cpp src/Renderer/Context.hpp src/Renderer/Swapchain.cpp src/Renderer/Swapchain.hpp)
+add_executable(${PROJECT_NAME} src/Main.cpp src/Core/Cone.cpp src/Renderer/Window.cpp src/Renderer/Context.cpp src/Renderer/Swapchain.cpp src/Renderer/Pipeline.cpp src/Renderer/Framebuffer.cpp src/Renderer/Image.cpp)
 
 target_precompile_headers(${PROJECT_NAME} PRIVATE src/Core/CnPch.hpp)
 
@@ -25,3 +25,6 @@ target_link_libraries(${PROJECT_NAME} glfw)
 # VkBootstrap
 add_subdirectory(src/Vendor/vk-bootstrap)
 target_link_libraries(${PROJECT_NAME} vk-bootstrap::vk-bootstrap)
+
+# GLM
+add_subdirectory(src/Vendor/glm)

@@ -1,7 +1,5 @@
 #pragma once
 
-#include "CnPch.hpp"
-
 #include "Renderer/Window.hpp"
 #include "Renderer/Context.hpp"
 
@@ -16,6 +14,7 @@ private:
     void Init();
     void Draw();
 private:
+    std::string test;
     std::unique_ptr<Window>     m_Window;
     std::unique_ptr<Context>    m_Context;
 };

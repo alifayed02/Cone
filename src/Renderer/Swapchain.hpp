@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Core/CnPch.hpp"
-
 class Context;
 
 class Swapchain

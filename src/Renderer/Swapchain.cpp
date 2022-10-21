@@ -1,10 +1,10 @@
+#include "Core/CnPch.hpp"
 #include "Swapchain.hpp"
 
 #include "Context.hpp"
 
 Swapchain::Swapchain(Context* context)
-        :   m_Context{context}, m_Swapchain{},
-            m_SwapchainImageFormat{}
+        :   m_Context{context}, m_Swapchain{}, m_SwapchainImageFormat{}
 {
     Init();
 }
