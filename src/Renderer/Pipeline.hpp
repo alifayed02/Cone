@@ -9,6 +9,8 @@ public:
     {
         std::string_view vertexPath;
         std::string_view fragmentPath;
+
+        std::vector<VkFormat> colorFormats;
     };
 public:
     Pipeline(Context* context, const PipelineInfo& info);

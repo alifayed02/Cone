@@ -15,6 +15,9 @@ public:
     inline VkPhysicalDevice GetPhysicalDevice() const { return m_PhysicalDevice; }
     inline VkSurfaceKHR GetSurface() const { return m_Surface; }
     inline VkExtent2D GetSurfaceExtent() const { return m_SurfaceExtent; }
+public:
+    VkCommandBuffer BeginSingleTimeCommands();
+    void EndSingleTimeCommands(VkCommandBuffer commandBuffer);
 private:
     void InitVulkan(const Window* window);
     void InitCommandPool();
