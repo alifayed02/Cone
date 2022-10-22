@@ -15,6 +15,9 @@ public:
     inline VkPhysicalDevice GetPhysicalDevice() const { return m_PhysicalDevice; }
     inline VkSurfaceKHR GetSurface() const { return m_Surface; }
     inline VkExtent2D GetSurfaceExtent() const { return m_SurfaceExtent; }
+    inline VkCommandPool GetCommandPool() const { return m_CommandPool; }
+    inline VkQueue GetGraphicsQueue() const { return m_GraphicsQueue; }
+    inline VkQueue GetPresentQueue() const { return m_PresentQueue; }
 public:
     VkCommandBuffer BeginSingleTimeCommands();
     void EndSingleTimeCommands(VkCommandBuffer commandBuffer);

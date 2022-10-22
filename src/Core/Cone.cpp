@@ -5,8 +5,9 @@ void Cone::Init()
 {
     VkExtent2D extent = {1280, 720};
 
-    m_Window = std::make_unique<Window>(extent, "Cone Engine");
-    m_Context = std::make_unique<Context>(m_Window.get());
+    m_Window    = std::make_unique<Window>(extent, "Cone Engine");
+    m_Context   = std::make_unique<Context>(m_Window.get());
+    m_Renderer  = std::make_unique<Renderer>(m_Context.get());
 
     std::cout << "[Cone] Successfully Initialized\n";
 }
@@ -27,4 +28,5 @@ void Cone::Run()
 
 void Cone::Draw()
 {
+    m_Renderer->DrawFrame();
 }
