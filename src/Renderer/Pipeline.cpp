@@ -4,7 +4,7 @@
 #include "Buffer/Vertex.hpp"
 
 Pipeline::Pipeline(Context* context, const PipelineInfo& info)
-    :   m_Context(context)
+    :   m_Context(context), m_CurrentCommandBuffer{}
 {
     auto vertexCode = ReadShaderCode(info.vertexPath);
     auto fragmentCode = ReadShaderCode(info.fragmentPath);
@@ -26,25 +26,39 @@ Pipeline::Pipeline(Context* context, const PipelineInfo& info)
 
     std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = { vertexShaderStageInfo, fragmentShaderStageInfo };
 
-    auto vertexBindingDesc = Vertex::GetBindingDescription();
-    auto vertexAttribDesc = Vertex::GetAttributeDescriptions();
+//    auto vertexBindingDesc = Vertex::GetBindingDescription();
+//    auto vertexAttribDesc = Vertex::GetAttributeDescriptions();
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.vertexBindingDescriptionCount = 1;
-    vertexInputInfo.pVertexBindingDescriptions = &vertexBindingDesc;
-    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexAttribDesc.size());
-    vertexInputInfo.pVertexAttributeDescriptions = vertexAttribDesc.data();
+//    vertexInputInfo.vertexBindingDescriptionCount = 1;
+//    vertexInputInfo.pVertexBindingDescriptions = &vertexBindingDesc;
+//    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexAttribDesc.size());
+//    vertexInputInfo.pVertexAttributeDescriptions = vertexAttribDesc.data();
 
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo{};
     inputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
     inputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     inputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
 
+    VkViewport viewport{};
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = (float) info.extent.width;
+    viewport.height = (float) info.extent.height;
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+
+    VkRect2D scissor{};
+    scissor.offset = {0, 0};
+    scissor.extent = info.extent;
+
     VkPipelineViewportStateCreateInfo viewportInfo{};
     viewportInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
     viewportInfo.viewportCount = 1;
+    viewportInfo.pViewports = &viewport;
     viewportInfo.scissorCount = 1;
+    viewportInfo.pScissors = &scissor;
 
     VkPipelineRasterizationStateCreateInfo rasterizationInfo{};
     rasterizationInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
@@ -53,7 +67,7 @@ Pipeline::Pipeline(Context* context, const PipelineInfo& info)
     rasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizationInfo.lineWidth = 1.0f;
     rasterizationInfo.cullMode = VK_CULL_MODE_BACK_BIT;
-    rasterizationInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    rasterizationInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
     rasterizationInfo.depthBiasEnable = VK_FALSE;
 
     VkPipelineMultisampleStateCreateInfo multisampleInfo{};
@@ -133,9 +147,67 @@ Pipeline::Pipeline(Context* context, const PipelineInfo& info)
     vkDestroyShaderModule(m_Context->GetLogicalDevice(), fragmentModule, nullptr);
 }
 
+void Pipeline::BeginRender(VkCommandBuffer commandBuffer, const RenderInfo& renderInfo)
+{
+    m_CurrentCommandBuffer = commandBuffer;
+    std::vector<VkRenderingAttachmentInfo> renderAttachments;
+
+    for(size_t i = 0; i < renderInfo.colorAttachments.size(); i++)
+    {
+        const Attachment& attachment = renderInfo.colorAttachments[i];
+
+        VkRenderingAttachmentInfo renderingAttachmentInfo{};
+        renderingAttachmentInfo.sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+        renderingAttachmentInfo.imageView   = attachment.imageView;
+        renderingAttachmentInfo.imageLayout = attachment.imageLayout;
+        renderingAttachmentInfo.loadOp      = attachment.loadOp;
+        renderingAttachmentInfo.storeOp     = attachment.storeOp;
+        renderingAttachmentInfo.clearValue  = attachment.clearValue;
+
+        renderAttachments.push_back(renderingAttachmentInfo);
+    }
+
+    VkRenderingInfo dynRenderingInfo{};
+    dynRenderingInfo.sType                  = VK_STRUCTURE_TYPE_RENDERING_INFO;
+    dynRenderingInfo.renderArea             = {{0U, 0U}, renderInfo.extent};
+    dynRenderingInfo.layerCount             = 1U;
+    dynRenderingInfo.colorAttachmentCount   = static_cast<uint32_t>(renderAttachments.size());
+    dynRenderingInfo.pColorAttachments      = renderAttachments.data();
+
+    vkCmdBeginRendering(m_CurrentCommandBuffer, &dynRenderingInfo);
+
+    const VkViewport viewport
+    {
+            .width  = static_cast<float>(renderInfo.extent.width),
+            .height = static_cast<float>(renderInfo.extent.height),
+            .maxDepth = 1.0f
+    };
+
+    const VkRect2D scissor
+    {
+            .extent = renderInfo.extent
+    };
+
+    vkCmdSetViewport(commandBuffer, 0U, 1U, &viewport);
+    vkCmdSetScissor(commandBuffer, 0U, 1U, &scissor);
+
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline);
+}
+
+void Pipeline::EndRender()
+{
+    vkCmdEndRendering(m_CurrentCommandBuffer);
+    m_CurrentCommandBuffer = VK_NULL_HANDLE;
+}
+
+void Pipeline::Draw(const uint32_t vertexCount)
+{
+    vkCmdDraw(m_CurrentCommandBuffer, vertexCount, 1, 0, 0);
+}
+
 std::vector<char> Pipeline::ReadShaderCode(std::string_view path)
 {
-    std::filesystem::path cwd = std::filesystem::current_path();
+    std::filesystem::path cwd = std::filesystem::current_path().parent_path();
     std::string fullPath = cwd.string() + std::string(path);
     std::ifstream shaderFile(fullPath, std::ios::ate | std::ios::binary);
 

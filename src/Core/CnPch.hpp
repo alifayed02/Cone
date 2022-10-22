@@ -8,6 +8,7 @@
 #include <string>
 #include <string_view>
 #include <span>
+#include <array>
 
 #include <iostream>
 #include <fstream>

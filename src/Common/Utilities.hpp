@@ -10,3 +10,8 @@
 			abort();                                                \
 		}                                                           \
 	} while (0);
+
+ namespace Utilities
+ {
+     void ChangeLayout(VkCommandBuffer commandBuffer, VkImageLayout oldLayout, VkImageLayout newLayout, VkImage image, VkImageAspectFlags aspectFlags);
+ }

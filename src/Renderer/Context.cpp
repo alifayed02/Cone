@@ -80,13 +80,23 @@ void Context::InitVulkan(const Window* window)
     /*
      * Device
      */
+    VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRendering{};
+    dynamicRendering.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
+    dynamicRendering.dynamicRendering = VK_TRUE;
+
     vkb::PhysicalDeviceSelector pDeviceSelector{vkbInstance};
     vkb::PhysicalDevice vkbPhysicalDevice = pDeviceSelector.set_minimum_version(1, 1)
             .set_surface(m_Surface)
+            .add_desired_extension("VK_KHR_dynamic_rendering")
+            .add_desired_extension("VK_KHR_depth_stencil_resolve")
+            .add_desired_extension("VK_KHR_create_renderpass2")
             .select()
             .value();
     vkb::DeviceBuilder deviceBuilder{vkbPhysicalDevice};
-    vkb::Device vkbLogicalDevice = deviceBuilder.build().value();
+    vkb::Device vkbLogicalDevice = deviceBuilder
+            .add_pNext(&dynamicRendering)
+            .build()
+            .value();
     m_PhysicalDevice = vkbPhysicalDevice.physical_device;
     m_LogicalDevice = vkbLogicalDevice.device;
 
