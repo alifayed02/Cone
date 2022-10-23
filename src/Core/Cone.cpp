@@ -16,17 +16,34 @@ void Cone::Run()
 {
     Init();
 
+    std::vector<Vertex> vertices
+            {
+                    {{-0.5f,  0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+                    {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+                    {{ 0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}},
+                    {{ 0.5f,  0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}}
+            };
+
+    std::vector<uint16_t> indices
+            {
+                    0, 1, 2, 2, 3, 0
+            };
+
+    VertexBuffer vertexBuffer{m_Context.get(), vertices};
+    IndexBuffer indexBuffer{m_Context.get(), indices};
+
     while(!m_Window->ShouldClose())
     {
         m_Window->PollEvents();
 
-        Draw();
+        Draw(vertexBuffer, indexBuffer);
     }
 
+    vkDeviceWaitIdle(m_Context->GetLogicalDevice());
     std::cout << "[Cone] Successfully Closed\n";
 }
 
-void Cone::Draw()
+void Cone::Draw(const VertexBuffer& vertexBuffer, const IndexBuffer& indexBuffer)
 {
-    m_Renderer->DrawFrame();
+    m_Renderer->DrawFrame(vertexBuffer, indexBuffer);
 }

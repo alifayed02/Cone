@@ -3,6 +3,9 @@
 #include "Swapchain.hpp"
 #include "Pipeline.hpp"
 
+#include "Buffer/VertexBuffer.hpp"
+#include "Buffer/IndexBuffer.hpp"
+
 class Context;
 
 class Renderer
@@ -14,7 +17,7 @@ public:
     Renderer(const Renderer& otherRenderer) = delete;
     Renderer& operator=(const Renderer& otherRenderer) = delete;
 public:
-    void DrawFrame();
+    void DrawFrame(const VertexBuffer& vb, const IndexBuffer& ib);
 private:
     void Init();
     void CreateCommandBuffers();
@@ -22,7 +25,7 @@ private:
     void CreateGeometryPipeline();
     void BeginFrame();
     void EndFrame();
-    void GeometryPass();
+    void GeometryPass(const VertexBuffer& vb, const IndexBuffer& ib);
 private:
     Context*                                                    m_Context;
     Swapchain                                                   m_Swapchain;

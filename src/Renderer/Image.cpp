@@ -5,9 +5,9 @@
 
 Image::Image(Context* context, const ImageInfo& imageInfo)
     :   m_Context{context}, m_Image{}, m_ImageView{},
-        m_ImageLayout{VK_IMAGE_LAYOUT_UNDEFINED}, m_ImageDimension{imageInfo.dimension},
-        m_ImageFormat{imageInfo.format}, m_ImageMemory{}, m_UsageFlags{imageInfo.usageFlags},
-        m_AspectFlags{imageInfo.aspectFlags}
+        m_ImageLayout{VK_IMAGE_LAYOUT_UNDEFINED}, m_ImageFormat{imageInfo.format},
+        m_ImageDimension{imageInfo.dimension}, m_UsageFlags{imageInfo.usageFlags},
+        m_AspectFlags{imageInfo.aspectFlags}, m_ImageMemory{}
 {
     CreateImage();
     CreateImageView();
@@ -15,9 +15,9 @@ Image::Image(Context* context, const ImageInfo& imageInfo)
 
 void Image::ChangeLayout(VkImageLayout newLayout)
 {
-    VkCommandBuffer commandBuffer = m_Context->BeginSingleTimeCommands();
+    VkCommandBuffer commandBuffer = m_Context->BeginSingleTimeCommands(Context::CommandType::GRAPHICS);
     Utilities::ChangeLayout(commandBuffer, m_ImageLayout, newLayout, m_Image, m_AspectFlags);
-    m_Context->EndSingleTimeCommands(commandBuffer);
+    m_Context->EndSingleTimeCommands(Context::CommandType::GRAPHICS, commandBuffer);
 
     m_ImageLayout = newLayout;
 }

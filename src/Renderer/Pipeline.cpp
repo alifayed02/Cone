@@ -26,15 +26,15 @@ Pipeline::Pipeline(Context* context, const PipelineInfo& info)
 
     std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = { vertexShaderStageInfo, fragmentShaderStageInfo };
 
-//    auto vertexBindingDesc = Vertex::GetBindingDescription();
-//    auto vertexAttribDesc = Vertex::GetAttributeDescriptions();
+    auto vertexBindingDesc = Vertex::GetBindingDescription();
+    auto vertexAttribDesc = Vertex::GetAttributeDescriptions();
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-//    vertexInputInfo.vertexBindingDescriptionCount = 1;
-//    vertexInputInfo.pVertexBindingDescriptions = &vertexBindingDesc;
-//    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexAttribDesc.size());
-//    vertexInputInfo.pVertexAttributeDescriptions = vertexAttribDesc.data();
+    vertexInputInfo.vertexBindingDescriptionCount = 1;
+    vertexInputInfo.pVertexBindingDescriptions = &vertexBindingDesc;
+    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexAttribDesc.size());
+    vertexInputInfo.pVertexAttributeDescriptions = vertexAttribDesc.data();
 
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo{};
     inputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -176,17 +176,13 @@ void Pipeline::BeginRender(VkCommandBuffer commandBuffer, const RenderInfo& rend
 
     vkCmdBeginRendering(m_CurrentCommandBuffer, &dynRenderingInfo);
 
-    const VkViewport viewport
-    {
-            .width  = static_cast<float>(renderInfo.extent.width),
-            .height = static_cast<float>(renderInfo.extent.height),
-            .maxDepth = 1.0f
-    };
+    VkViewport viewport{};
+    viewport.width      = static_cast<float>(renderInfo.extent.width);
+    viewport.height     = static_cast<float>(renderInfo.extent.height);
+    viewport.maxDepth   = 1.0f;
 
-    const VkRect2D scissor
-    {
-            .extent = renderInfo.extent
-    };
+    VkRect2D scissor{};
+    scissor.extent = renderInfo.extent;
 
     vkCmdSetViewport(commandBuffer, 0U, 1U, &viewport);
     vkCmdSetScissor(commandBuffer, 0U, 1U, &scissor);
@@ -203,6 +199,11 @@ void Pipeline::EndRender()
 void Pipeline::Draw(const uint32_t vertexCount)
 {
     vkCmdDraw(m_CurrentCommandBuffer, vertexCount, 1, 0, 0);
+}
+
+void Pipeline::DrawIndexed(const uint32_t indexCount)
+{
+    vkCmdDrawIndexed(m_CurrentCommandBuffer, indexCount, 1, 0, 0, 0);
 }
 
 std::vector<char> Pipeline::ReadShaderCode(std::string_view path)

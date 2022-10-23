@@ -34,7 +34,8 @@ public:
 public:
     void BeginRender(VkCommandBuffer commandBuffer, const RenderInfo& renderInfo);
     void EndRender();
-    void Draw(const uint32_t vertexCount);
+    void Draw(uint32_t vertexCount);
+    void DrawIndexed(uint32_t indexCount);
 private:
     std::vector<char> ReadShaderCode(std::string_view path);
     VkShaderModule CreateShaderModule(std::span<char> shaderCode);

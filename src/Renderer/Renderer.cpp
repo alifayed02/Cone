@@ -114,10 +114,13 @@ void Renderer::EndFrame()
     m_FrameIndex = (m_FrameIndex + 1) % Swapchain::FRAMES_IN_FLIGHT;
 }
 
-void Renderer::DrawFrame()
+void Renderer::DrawFrame(const VertexBuffer& vb, const IndexBuffer& ib)
 {
+    /*
+ * Temp Vertex & Index Buffers for Testing
+ */
     BeginFrame();
-    GeometryPass();
+    GeometryPass(vb, ib);
     EndFrame();
 }
 
@@ -127,7 +130,7 @@ void Renderer::DrawFrame()
  *
  * Deferred renderer will render into separate buffers later
  */
-void Renderer::GeometryPass()
+void Renderer::GeometryPass(const VertexBuffer& vb, const IndexBuffer& ib)
 {
     /*
      * Transition Image Layout to Color Attachment Optimal
@@ -148,7 +151,9 @@ void Renderer::GeometryPass()
     renderInfo.extent = m_Swapchain.GetExtent();
 
     m_GeometryPipeline->BeginRender(m_CommandBuffers[m_FrameIndex], renderInfo);
-    m_GeometryPipeline->Draw(3);
+    vb.Bind(m_CommandBuffers[m_FrameIndex]);
+    ib.Bind(m_CommandBuffers[m_FrameIndex]);
+    m_GeometryPipeline->DrawIndexed(ib.GetIndicesCount());
     m_GeometryPipeline->EndRender();
 }
 

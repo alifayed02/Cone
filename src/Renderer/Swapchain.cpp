@@ -58,9 +58,9 @@ Swapchain::SwapchainSupportDetails Swapchain::QuerySwapchainSupport()
 
 void Swapchain::ChangeLayout(size_t imageIndex, VkImageLayout newLayout, VkImageAspectFlags aspectFlags)
 {
-    VkCommandBuffer commandBuffer = m_Context->BeginSingleTimeCommands();
+    VkCommandBuffer commandBuffer = m_Context->BeginSingleTimeCommands(Context::CommandType::GRAPHICS);
     Utilities::ChangeLayout(commandBuffer, m_ImageLayouts[imageIndex], newLayout, m_Images[imageIndex], aspectFlags);
-    m_Context->EndSingleTimeCommands(commandBuffer);
+    m_Context->EndSingleTimeCommands(Context::CommandType::GRAPHICS, commandBuffer);
     m_ImageLayouts[imageIndex] = newLayout;
 }
 

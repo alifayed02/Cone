@@ -7,8 +7,7 @@
 struct Vertex
 {
     glm::vec3 pos;
-    glm::vec3 normal;
-    glm::vec2 texcoord;
+    glm::vec3 color;
 
     static constexpr VkVertexInputBindingDescription GetBindingDescription()
     {
@@ -19,9 +18,9 @@ struct Vertex
         };
     }
 
-    static constexpr std::array<VkVertexInputAttributeDescription, 3> GetAttributeDescriptions()
+    static constexpr std::array<VkVertexInputAttributeDescription, 2> GetAttributeDescriptions()
     {
-        return std::array<VkVertexInputAttributeDescription, 3> {
+        return std::array<VkVertexInputAttributeDescription, 2> {
                 VkVertexInputAttributeDescription
                 {
                         .location = 0U,
@@ -34,20 +33,13 @@ struct Vertex
                         .location = 1U,
                         .binding = 0U,
                         .format = VK_FORMAT_R32G32B32_SFLOAT,
-                        .offset = offsetof(Vertex, normal),
+                        .offset = offsetof(Vertex, color),
                 },
-                VkVertexInputAttributeDescription
-                {
-                        .location = 3U,
-                        .binding = 0U,
-                        .format = VK_FORMAT_R32G32_SFLOAT,
-                        .offset = offsetof(Vertex, texcoord),
-                }
         };
     }
 
-    bool operator==(const Vertex& other) const
+    bool operator==(const Vertex& otherVertex) const
     {
-        return pos == other.pos && texcoord == other.texcoord && normal == other.normal;
+        return pos == otherVertex.pos && color == otherVertex.color;
     }
 };

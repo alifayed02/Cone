@@ -5,6 +5,12 @@ class Window;
 class Context
 {
 public:
+    enum class CommandType
+    {
+        GRAPHICS,
+        TRANSFER
+    };
+public:
     explicit Context(const Window* window);
     ~Context();
 
@@ -18,21 +24,28 @@ public:
     inline VkCommandPool GetCommandPool() const { return m_CommandPool; }
     inline VkQueue GetGraphicsQueue() const { return m_GraphicsQueue; }
     inline VkQueue GetPresentQueue() const { return m_PresentQueue; }
+    inline VkQueue GetTransferQueue() const { return m_TransferQueue; }
+    inline VmaAllocator GetAllocator() const { return m_Allocator; }
 public:
-    VkCommandBuffer BeginSingleTimeCommands();
-    void EndSingleTimeCommands(VkCommandBuffer commandBuffer);
+    VkCommandBuffer BeginSingleTimeCommands(CommandType type);
+    void EndSingleTimeCommands(CommandType type, VkCommandBuffer commandBuffer);
 private:
     void InitVulkan(const Window* window);
     void InitCommandPool();
+    void InitTransferCommandPool();
 private:
     VkInstance                  m_Instance;
+    VmaAllocator                m_Allocator;
     VkDebugUtilsMessengerEXT    m_DebugMessenger;
     VkPhysicalDevice            m_PhysicalDevice;
     VkDevice                    m_LogicalDevice;
     VkQueue	                    m_GraphicsQueue;
     VkQueue	                    m_PresentQueue;
+    VkQueue	                    m_TransferQueue;
     uint32_t                    m_GraphicsQueueFamily;
+    uint32_t                    m_TransferQueueFamily;
     VkCommandPool               m_CommandPool;
+    VkCommandPool               m_TransferCommandPool;
     VkSurfaceKHR                m_Surface;
     VkExtent2D                  m_SurfaceExtent;
 private:
