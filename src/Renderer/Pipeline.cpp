@@ -206,6 +206,16 @@ void Pipeline::DrawIndexed(const uint32_t indexCount)
     vkCmdDrawIndexed(m_CurrentCommandBuffer, indexCount, 1, 0, 0, 0);
 }
 
+void Pipeline::BindVertexBuffer(const VertexBuffer& vb)
+{
+    vb.Bind(m_CurrentCommandBuffer);
+}
+
+void Pipeline::BindIndexBuffer(const IndexBuffer& ib)
+{
+    ib.Bind(m_CurrentCommandBuffer);
+}
+
 std::vector<char> Pipeline::ReadShaderCode(std::string_view path)
 {
     std::filesystem::path cwd = std::filesystem::current_path().parent_path();

@@ -151,8 +151,8 @@ void Renderer::GeometryPass(const VertexBuffer& vb, const IndexBuffer& ib)
     renderInfo.extent = m_Swapchain.GetExtent();
 
     m_GeometryPipeline->BeginRender(m_CommandBuffers[m_FrameIndex], renderInfo);
-    vb.Bind(m_CommandBuffers[m_FrameIndex]);
-    ib.Bind(m_CommandBuffers[m_FrameIndex]);
+    m_GeometryPipeline->BindVertexBuffer(vb);
+    m_GeometryPipeline->BindIndexBuffer(ib);
     m_GeometryPipeline->DrawIndexed(ib.GetIndicesCount());
     m_GeometryPipeline->EndRender();
 }

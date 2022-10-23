@@ -2,6 +2,9 @@
 
 #include "Context.hpp"
 
+#include "Buffer/VertexBuffer.hpp"
+#include "Buffer/IndexBuffer.hpp"
+
 class Pipeline
 {
 public:
@@ -36,6 +39,8 @@ public:
     void EndRender();
     void Draw(uint32_t vertexCount);
     void DrawIndexed(uint32_t indexCount);
+    void BindVertexBuffer(const VertexBuffer& vb);
+    void BindIndexBuffer(const IndexBuffer& ib);
 private:
     std::vector<char> ReadShaderCode(std::string_view path);
     VkShaderModule CreateShaderModule(std::span<char> shaderCode);
