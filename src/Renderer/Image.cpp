@@ -5,9 +5,9 @@
 
 Image::Image(Context* context, const ImageInfo& imageInfo)
     :   m_Context{context}, m_Image{}, m_ImageView{},
-        m_ImageLayout{VK_IMAGE_LAYOUT_UNDEFINED}, m_ImageFormat{imageInfo.format},
+        m_ImageLayout{imageInfo.initialLayout}, m_ImageFormat{imageInfo.format},
         m_ImageDimension{imageInfo.dimension}, m_UsageFlags{imageInfo.usageFlags},
-        m_AspectFlags{imageInfo.aspectFlags}, m_ImageMemory{}
+        m_AspectFlags{imageInfo.aspectFlags}, m_Allocation{}, m_AllocationInfo{}
 {
     CreateImage();
     CreateImageView();
@@ -39,7 +39,11 @@ void Image::CreateImage()
     imageCreateInfo.sharingMode     = VK_SHARING_MODE_EXCLUSIVE;
     imageCreateInfo.initialLayout   = VK_IMAGE_LAYOUT_UNDEFINED;
 
-    VK_CHECK(vkCreateImage(m_Context->GetLogicalDevice(), &imageCreateInfo, nullptr, &m_Image))
+    VmaAllocationCreateInfo vmaAllocationCreateInfo{};
+    vmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+    vmaAllocationCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+
+    VK_CHECK(vmaCreateImage(m_Context->GetAllocator(), &imageCreateInfo, &vmaAllocationCreateInfo, &m_Image, &m_Allocation, &m_AllocationInfo))
 }
 
 void Image::CreateImageView()
@@ -66,10 +70,6 @@ Image::~Image()
     }
     if(m_Image)
     {
-        vkDestroyImage(m_Context->GetLogicalDevice(), m_Image, nullptr);
-    }
-    if(m_ImageMemory)
-    {
-        vkFreeMemory(m_Context->GetLogicalDevice(), m_ImageMemory, nullptr);
+        vmaDestroyImage(m_Context->GetAllocator(), m_Image, m_Allocation);
     }
 }

@@ -9,6 +9,7 @@ public:
     {
         VkDeviceSize                size;
         VkBufferUsageFlags          usageFlags;
+        VmaMemoryUsage              vmaMemoryUsage;
         VmaAllocationCreateFlags    vmaAllocFlags;
     };
 public:
@@ -19,6 +20,8 @@ public:
     Buffer& operator=(const Buffer& otherBuffer) = delete;
 public:
     inline const VkBuffer& GetBuffer() const { return m_Buffer; }
+    inline VkDeviceSize GetSize() const { return m_AllocInfo.size; }
+    inline VkDeviceSize GetOffset() const { return m_AllocInfo.offset; }
 public:
     void Map(const void* memory, VkDeviceSize size) const;
     void Transfer(Buffer* dstBuffer);

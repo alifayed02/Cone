@@ -11,6 +11,7 @@ Framebuffer::Framebuffer(Context* context, VkExtent2D dimension, const std::vect
     {
         Image::ImageInfo imageInfo{};
         imageInfo.format        = attachment.format;
+        imageInfo.initialLayout = attachment.layout;
         imageInfo.dimension     = m_Dimension;
         imageInfo.usageFlags    = attachment.usageFlags;
         imageInfo.aspectFlags   = attachment.aspectFlags;

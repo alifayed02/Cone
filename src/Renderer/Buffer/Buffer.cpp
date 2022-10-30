@@ -13,7 +13,7 @@ Buffer::Buffer(Context* context, const BufferInfo& bufferInfo)
     bufferCreateInfo.sharingMode    = VK_SHARING_MODE_EXCLUSIVE;
 
     VmaAllocationCreateInfo allocInfo{};
-    allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+    allocInfo.usage = bufferInfo.vmaMemoryUsage;
     allocInfo.flags = bufferInfo.vmaAllocFlags;
 
     vmaCreateBuffer(m_Context->GetAllocator(), &bufferCreateInfo, &allocInfo, &m_Buffer, &m_Allocation, &m_AllocInfo);

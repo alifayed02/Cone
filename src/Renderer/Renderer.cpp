@@ -1,15 +1,21 @@
 #include "Core/CnPch.hpp"
 #include "Renderer.hpp"
 
+#include "Scene/Scene.hpp"
+#include "Scene/SceneMember.hpp"
+
 #include "Context.hpp"
 
-Renderer::Renderer(Context* context)
-    :   m_Context{context}, m_Swapchain{context},
+#include "glm/gtc/matrix_transform.hpp"
+
+Renderer::Renderer(Context* context, Scene* scene)
+    :   m_Context{context}, m_ActiveScene{scene}, m_Swapchain{context},
         m_CommandBuffers{}, m_InFlightFences{},
         m_ImageAvailableSems{}, m_PresentSems{},
         m_ImageIndex{}, m_FrameIndex{}
 {
     Init();
+    m_ActiveScene->GetCamera().SetExtent(m_Swapchain.GetExtent());
 }
 
 void Renderer::Init()
@@ -17,6 +23,7 @@ void Renderer::Init()
     CreateCommandBuffers();
     CreateSyncResources();
     CreateGeometryPipeline();
+    CreateGeometryPassResources();
 }
 
 void Renderer::CreateCommandBuffers()
@@ -54,13 +61,37 @@ void Renderer::CreateSyncResources()
  */
 void Renderer::CreateGeometryPipeline()
 {
+    VkDescriptorSetLayout cameraLayout = m_ActiveScene->GetCamera().GetCameraLayout();
+
+    VkPushConstantRange cameraPushConstant{};
+    cameraPushConstant.stageFlags    = VK_SHADER_STAGE_VERTEX_BIT;
+    cameraPushConstant.offset        = 0;
+    cameraPushConstant.size          = sizeof(glm::mat4);
+
     Pipeline::PipelineInfo pipeInfo{};
-    pipeInfo.vertexPath     = "/Shaders/GeometryVert.spv";
-    pipeInfo.fragmentPath   = "/Shaders/GeometryFrag.spv";
-    pipeInfo.colorFormats   = { m_Swapchain.GetFormat() };
-    pipeInfo.extent         = m_Swapchain.GetExtent();
+    pipeInfo.vertexPath         = "/Shaders/GeometryVert.spv";
+    pipeInfo.fragmentPath       = "/Shaders/GeometryFrag.spv";
+    pipeInfo.colorFormats       = { m_Swapchain.GetFormat() };
+    pipeInfo.depthFormat        = VK_FORMAT_D32_SFLOAT;
+    pipeInfo.extent             = m_Swapchain.GetExtent();
+    pipeInfo.setLayouts         = 1;
+    pipeInfo.layouts            = &cameraLayout;
+    pipeInfo.pushConstantCount  = 1;
+    pipeInfo.pushConstant       = &cameraPushConstant;
 
     m_GeometryPipeline = std::make_unique<Pipeline>(m_Context, pipeInfo);
+}
+
+void Renderer::CreateGeometryPassResources()
+{
+    Image::ImageInfo depthImage{};
+    depthImage.format           = VK_FORMAT_D32_SFLOAT;
+    depthImage.initialLayout    = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+    depthImage.dimension        = m_Swapchain.GetExtent();
+    depthImage.usageFlags       = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    depthImage.aspectFlags      = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+    m_GeometryDepthImage    = std::make_unique<Image>(m_Context, depthImage);
 }
 
 void Renderer::BeginFrame()
@@ -114,29 +145,14 @@ void Renderer::EndFrame()
     m_FrameIndex = (m_FrameIndex + 1) % Swapchain::FRAMES_IN_FLIGHT;
 }
 
-void Renderer::DrawFrame(const VertexBuffer& vb, const IndexBuffer& ib)
-{
-    /*
- * Temp Vertex & Index Buffers for Testing
- */
-    BeginFrame();
-    GeometryPass(vb, ib);
-    EndFrame();
-}
-
 /*
  * One Pass, Forward Render
  * Rendering directly into swapchain images
  *
  * Deferred renderer will render into separate buffers later
  */
-void Renderer::GeometryPass(const VertexBuffer& vb, const IndexBuffer& ib)
+void Renderer::GeometryPass()
 {
-    /*
-     * Transition Image Layout to Color Attachment Optimal
-     * Call Pipeline Render Function
-     * Call Pipeline End Render Function
-     */
     m_Swapchain.ChangeLayout(m_ImageIndex, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
 
     Pipeline::Attachment colorAttachment{};
@@ -144,17 +160,47 @@ void Renderer::GeometryPass(const VertexBuffer& vb, const IndexBuffer& ib)
     colorAttachment.imageLayout = m_Swapchain.GetImageLayouts()[m_ImageIndex];
     colorAttachment.loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR;
     colorAttachment.storeOp     = VK_ATTACHMENT_STORE_OP_STORE;
-    colorAttachment.clearValue = {};
+    colorAttachment.clearValue  = {};
+
+    Pipeline::Attachment depthAttachment{};
+    depthAttachment.imageView   = m_GeometryDepthImage->GetImageView();
+    depthAttachment.imageLayout = m_GeometryDepthImage->GetImageLayout();
+    depthAttachment.loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    depthAttachment.storeOp     = VK_ATTACHMENT_STORE_OP_STORE;
+    depthAttachment.clearValue  = {.depthStencil{1.0f, 0}};
 
     Pipeline::RenderInfo renderInfo{};
     renderInfo.colorAttachments = { colorAttachment };
+    renderInfo.depthAttachment  = depthAttachment;
     renderInfo.extent = m_Swapchain.GetExtent();
 
     m_GeometryPipeline->BeginRender(m_CommandBuffers[m_FrameIndex], renderInfo);
-    m_GeometryPipeline->BindVertexBuffer(vb);
-    m_GeometryPipeline->BindIndexBuffer(ib);
-    m_GeometryPipeline->DrawIndexed(ib.GetIndicesCount());
+
+    m_ActiveScene->GetCamera().Bind(m_CommandBuffers[m_FrameIndex], m_GeometryPipeline->GetLayout(), m_FrameIndex);
+
+    static auto startTime = std::chrono::high_resolution_clock::now();
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+    for(const auto& sceneMember : m_ActiveScene->GetSceneMembers())
+    {
+        sceneMember->Rotate(0.0f, 0.0f, time * glm::radians(90.0f)).Translate(std::sin(time * 2), std::cos(time * 2), 0.0f);
+        sceneMember->UpdateModelMatrix();
+
+        m_GeometryPipeline->PushConstant(VK_SHADER_STAGE_VERTEX_BIT, 0U, sizeof(glm::mat4), &sceneMember->GetModelMatrix());
+        m_GeometryPipeline->BindVertexBuffer(sceneMember->GetMesh().GetVertexBuffer());
+        m_GeometryPipeline->BindIndexBuffer(sceneMember->GetMesh().GetIndexBuffer());
+        m_GeometryPipeline->DrawIndexed(sceneMember->GetMesh().GetIndexBuffer().GetIndicesCount());
+    }
+
     m_GeometryPipeline->EndRender();
+}
+
+void Renderer::DrawFrame()
+{
+    BeginFrame();
+    GeometryPass();
+    EndFrame();
 }
 
 Renderer::~Renderer()
