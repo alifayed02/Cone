@@ -94,9 +94,9 @@ void Camera::WriteBuffer(const uint32_t frameIndex)
     m_Buffers[frameIndex]->Map(&m_BufferObjects[frameIndex], m_Buffers[frameIndex]->GetSize());
 }
 
-void Camera::Bind(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, uint32_t frameIndex)
+void Camera::Bind(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, const uint32_t frameIndex, const uint32_t setIndex) const
 {
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &m_DescriptorSets[frameIndex], 0, nullptr);
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, setIndex, 1U, &m_DescriptorSets[frameIndex], 0U, nullptr);
 }
 
 void Camera::SetExtent(const VkExtent2D extent)

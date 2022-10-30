@@ -1,6 +1,7 @@
 #pragma once
 
 class Context;
+class Buffer;
 
 class Image
 {
@@ -24,6 +25,7 @@ public:
     Image& operator=(Image&&) noexcept = default;
 public:
     void ChangeLayout(VkImageLayout newLayout);
+    void CopyDataToImage(const Buffer* buffer, VkExtent3D imageExtent);
 public:
     inline VkImageView GetImageView() const { return m_ImageView; }
     inline VkImageLayout GetImageLayout() const { return m_ImageLayout; }

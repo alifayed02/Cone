@@ -6,10 +6,10 @@ VertexBuffer::VertexBuffer(Context* context, const std::vector<Vertex>& vertices
         m_VerticesCount{static_cast<uint32_t>(vertices.size())}
 {
     Buffer::BufferInfo stagingBufferInfo{};
-    stagingBufferInfo.size = vertices.size() * sizeof(Vertex);
-    stagingBufferInfo.usageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    stagingBufferInfo.vmaMemoryUsage = VMA_MEMORY_USAGE_AUTO;
-    stagingBufferInfo.vmaAllocFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+    stagingBufferInfo.size              = vertices.size() * sizeof(Vertex);
+    stagingBufferInfo.usageFlags        = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    stagingBufferInfo.vmaMemoryUsage    = VMA_MEMORY_USAGE_AUTO_PREFER_HOST;
+    stagingBufferInfo.vmaAllocFlags     = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
     Buffer stagingBuffer{context, stagingBufferInfo};
     stagingBuffer.Map(vertices.data(), stagingBufferInfo.size);

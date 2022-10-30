@@ -19,6 +19,7 @@ public:
     Swapchain& operator=(const Swapchain& otherSwapchain) = delete;
 public:
     void ChangeLayout(size_t imageIndex, VkImageLayout newLayout, VkImageAspectFlags aspectFlags);
+    void ChangeLayout(size_t imageIndex, VkImageLayout newLayout, VkImageAspectFlags aspectFlags, VkCommandBuffer);
 public:
     inline VkFormat GetFormat() const { return m_ImageFormat; }
     inline VkSwapchainKHR GetSwapchain() const { return m_Swapchain; }

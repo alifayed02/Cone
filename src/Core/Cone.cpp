@@ -42,18 +42,18 @@ void Cone::CreateMainScene()
 
     std::vector<Vertex> vertices
             {
-                    {{-0.5f,  0.5f, -2.5f},  {1.0f, 1.0f, 1.0f}},
-                    {{-0.5f, -0.5f, -2.5f},  {1.0f, 1.0f, 1.0f}},
-                    {{ 0.5f, -0.5f, -2.5f},  {1.0f, 1.0f, 1.0f}},
-                    {{ 0.5f,  0.5f, -2.5f},  {1.0f, 1.0f, 1.0f}}
+                    {{-0.5f,  0.5f, -2.5f},  {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
+                    {{-0.5f, -0.5f, -2.5f},  {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}},
+                    {{ 0.5f, -0.5f, -2.5f},  {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
+                    {{ 0.5f,  0.5f, -2.5f},  {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
             };
 
     std::vector<Vertex> vertices2
             {
-                    {{-0.5f,  0.5f, -4.5f},  {1.0f, 0.0f, 1.0f}},
-                    {{-0.5f, -0.5f, -4.5f},  {1.0f, 0.0f, 1.0f}},
-                    {{ 0.5f, -0.5f, -4.5f},  {1.0f, 0.0f, 1.0f}},
-                    {{ 0.5f,  0.5f, -4.5f},  {1.0f, 0.0f, 1.0f}}
+                    {{-0.5f,  0.5f, -4.5f},  {1.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+                    {{-0.5f, -0.5f, -4.5f},  {1.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
+                    {{ 0.5f, -0.5f, -4.5f},  {1.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
+                    {{ 0.5f,  0.5f, -4.5f},  {1.0f, 0.0f, 1.0f}, {0.0f, 1.0f}}
             };
 
     std::vector<uint16_t> indices
@@ -62,12 +62,14 @@ void Cone::CreateMainScene()
             };
 
     Mesh::MeshInfo rectangle{};
-    rectangle.vertices = vertices;
-    rectangle.indices = indices;
+    rectangle.vertices  = vertices;
+    rectangle.indices   = indices;
+    rectangle.texturePath = R"(D:\Graphics\Cone\Textures\stanfordbunny.jpg)";
 
     Mesh::MeshInfo rectangle2{};
     rectangle2.vertices = vertices2;
     rectangle2.indices = indices;
+    rectangle2.texturePath = R"(D:\Graphics\Cone\Textures\blendermonkey.jpg)";
 
     m_MainScene->AddSceneMember(rectangle);
     m_MainScene->AddSceneMember(rectangle2);

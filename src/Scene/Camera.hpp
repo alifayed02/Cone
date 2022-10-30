@@ -21,7 +21,7 @@ public:
     ~Camera();
 public:
     void WriteBuffer(uint32_t frameIndex);
-    void Bind(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, uint32_t frameIndex);
+    void Bind(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, uint32_t frameIndex, uint32_t setIndex) const;
     void SetExtent(VkExtent2D extent);
 public:
     inline VkDescriptorSetLayout GetCameraLayout() const { return m_DescriptorSetLayout; }

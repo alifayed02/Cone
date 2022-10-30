@@ -6,10 +6,10 @@ IndexBuffer::IndexBuffer(Context* context, const std::vector<uint16_t>& indices)
         m_IndicesCount{static_cast<uint32_t>(indices.size())}
 {
     Buffer::BufferInfo stagingBufferInfo{};
-    stagingBufferInfo.size = indices.size() * sizeof(uint16_t);
-    stagingBufferInfo.usageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    stagingBufferInfo.vmaMemoryUsage = VMA_MEMORY_USAGE_AUTO;
-    stagingBufferInfo.vmaAllocFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+    stagingBufferInfo.size              = indices.size() * sizeof(uint16_t);
+    stagingBufferInfo.usageFlags        = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    stagingBufferInfo.vmaMemoryUsage    = VMA_MEMORY_USAGE_AUTO_PREFER_HOST;
+    stagingBufferInfo.vmaAllocFlags     = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
     Buffer stagingBuffer{context, stagingBufferInfo};
     stagingBuffer.Map(indices.data(), stagingBufferInfo.size);

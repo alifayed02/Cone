@@ -64,6 +64,12 @@ void Swapchain::ChangeLayout(size_t imageIndex, VkImageLayout newLayout, VkImage
     m_ImageLayouts[imageIndex] = newLayout;
 }
 
+void Swapchain::ChangeLayout(size_t imageIndex, VkImageLayout newLayout, VkImageAspectFlags aspectFlags, VkCommandBuffer commandBuffer)
+{
+    Utilities::ChangeLayout(commandBuffer, m_ImageLayouts[imageIndex], newLayout, m_Images[imageIndex], aspectFlags);
+    m_ImageLayouts[imageIndex] = newLayout;
+}
+
 Swapchain::~Swapchain()
 {
     for(auto imageView : m_ImageViews)

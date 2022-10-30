@@ -21,7 +21,7 @@ public:
     inline VkPhysicalDevice GetPhysicalDevice() const { return m_PhysicalDevice; }
     inline VkSurfaceKHR GetSurface() const { return m_Surface; }
     inline VkExtent2D GetSurfaceExtent() const { return m_SurfaceExtent; }
-    inline VkCommandPool GetCommandPool() const { return m_CommandPool; }
+    inline VkCommandPool GetCommandPool() const { return m_GraphicsCommandPool; }
     inline VkQueue GetGraphicsQueue() const { return m_GraphicsQueue; }
     inline VkQueue GetPresentQueue() const { return m_PresentQueue; }
     inline VkQueue GetTransferQueue() const { return m_TransferQueue; }
@@ -44,7 +44,7 @@ private:
     VkQueue	                    m_TransferQueue;
     uint32_t                    m_GraphicsQueueFamily;
     uint32_t                    m_TransferQueueFamily;
-    VkCommandPool               m_CommandPool;
+    VkCommandPool               m_GraphicsCommandPool;
     VkCommandPool               m_TransferCommandPool;
     VkSurfaceKHR                m_Surface;
     VkExtent2D                  m_SurfaceExtent;

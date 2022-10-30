@@ -16,10 +16,8 @@ public:
         VkFormat                depthFormat;
         VkExtent2D              extent;
 
-        uint32_t                        setLayouts;
-        const VkDescriptorSetLayout*    layouts;
-        uint32_t                        pushConstantCount;
-        const VkPushConstantRange*      pushConstant;
+        std::vector<VkDescriptorSetLayout>  layouts;
+        std::vector<VkPushConstantRange>    pushConstants;
     };
     struct Attachment
     {

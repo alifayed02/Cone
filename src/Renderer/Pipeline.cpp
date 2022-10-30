@@ -116,10 +116,10 @@ Pipeline::Pipeline(Context* context, const PipelineInfo& info)
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType                    = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount           = info.setLayouts;
-    pipelineLayoutInfo.pSetLayouts              = info.layouts;
-    pipelineLayoutInfo.pushConstantRangeCount   = info.pushConstantCount;
-    pipelineLayoutInfo.pPushConstantRanges      = info.pushConstant;
+    pipelineLayoutInfo.setLayoutCount           = info.layouts.size();
+    pipelineLayoutInfo.pSetLayouts              = info.layouts.data();
+    pipelineLayoutInfo.pushConstantRangeCount   = info.pushConstants.size();
+    pipelineLayoutInfo.pPushConstantRanges      = info.pushConstants.data();
 
     VK_CHECK(vkCreatePipelineLayout(m_Context->GetLogicalDevice(), &pipelineLayoutInfo, nullptr, &m_PipelineLayout))
 

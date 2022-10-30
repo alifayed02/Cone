@@ -61,8 +61,7 @@ void Renderer::CreateSyncResources()
  */
 void Renderer::CreateGeometryPipeline()
 {
-    VkDescriptorSetLayout cameraLayout = m_ActiveScene->GetCamera().GetCameraLayout();
-
+    // REFACTOR
     VkPushConstantRange cameraPushConstant{};
     cameraPushConstant.stageFlags    = VK_SHADER_STAGE_VERTEX_BIT;
     cameraPushConstant.offset        = 0;
@@ -74,10 +73,8 @@ void Renderer::CreateGeometryPipeline()
     pipeInfo.colorFormats       = { m_Swapchain.GetFormat() };
     pipeInfo.depthFormat        = VK_FORMAT_D32_SFLOAT;
     pipeInfo.extent             = m_Swapchain.GetExtent();
-    pipeInfo.setLayouts         = 1;
-    pipeInfo.layouts            = &cameraLayout;
-    pipeInfo.pushConstantCount  = 1;
-    pipeInfo.pushConstant       = &cameraPushConstant;
+    pipeInfo.layouts            = { m_ActiveScene->GetCamera().GetCameraLayout(), m_ActiveScene->GetSceneMembers()[0]->GetMesh().GetTexture().GetLayout() };
+    pipeInfo.pushConstants      = { cameraPushConstant };
 
     m_GeometryPipeline = std::make_unique<Pipeline>(m_Context, pipeInfo);
 }
@@ -86,12 +83,13 @@ void Renderer::CreateGeometryPassResources()
 {
     Image::ImageInfo depthImage{};
     depthImage.format           = VK_FORMAT_D32_SFLOAT;
-    depthImage.initialLayout    = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+    depthImage.initialLayout    = VK_IMAGE_LAYOUT_UNDEFINED;
     depthImage.dimension        = m_Swapchain.GetExtent();
     depthImage.usageFlags       = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
     depthImage.aspectFlags      = VK_IMAGE_ASPECT_DEPTH_BIT;
 
-    m_GeometryDepthImage    = std::make_unique<Image>(m_Context, depthImage);
+    m_GeometryDepthImage = std::make_unique<Image>(m_Context, depthImage);
+    m_GeometryDepthImage->ChangeLayout(VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 }
 
 void Renderer::BeginFrame()
@@ -102,7 +100,6 @@ void Renderer::BeginFrame()
     /*
      *  Handle Swapchain Recreation
      */
-
     vkResetFences(m_Context->GetLogicalDevice(), 1U, &m_InFlightFences[m_FrameIndex]);
     vkResetCommandBuffer(m_CommandBuffers[m_FrameIndex], 0U);
 
@@ -114,32 +111,32 @@ void Renderer::BeginFrame()
 
 void Renderer::EndFrame()
 {
-    m_Swapchain.ChangeLayout(m_ImageIndex, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_ASPECT_COLOR_BIT);
+    m_Swapchain.ChangeLayout(m_ImageIndex, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_ASPECT_COLOR_BIT, m_CommandBuffers[m_FrameIndex]);
     VK_CHECK(vkEndCommandBuffer(m_CommandBuffers[m_FrameIndex]))
 
     VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT  };
 
     VkSubmitInfo submitInfo{};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = &m_ImageAvailableSems[m_FrameIndex];
-    submitInfo.pWaitDstStageMask = waitStages;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &m_CommandBuffers[m_FrameIndex];
+    submitInfo.sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.waitSemaphoreCount   = 1;
+    submitInfo.pWaitSemaphores      = &m_ImageAvailableSems[m_FrameIndex];
+    submitInfo.pWaitDstStageMask    = waitStages;
+    submitInfo.commandBufferCount   = 1;
+    submitInfo.pCommandBuffers      = &m_CommandBuffers[m_FrameIndex];
     submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = &m_PresentSems[m_FrameIndex];
+    submitInfo.pSignalSemaphores    = &m_PresentSems[m_FrameIndex];
 
     VK_CHECK(vkQueueSubmit(m_Context->GetGraphicsQueue(), 1, &submitInfo, m_InFlightFences[m_FrameIndex]))
 
     VkSwapchainKHR swapchain[] = {m_Swapchain.GetSwapchain()};
 
     VkPresentInfoKHR presentInfo{};
-    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = &m_PresentSems[m_FrameIndex];
-    presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = swapchain;
-    presentInfo.pImageIndices = &m_ImageIndex;
+    presentInfo.sType               = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.waitSemaphoreCount  = 1;
+    presentInfo.pWaitSemaphores     = &m_PresentSems[m_FrameIndex];
+    presentInfo.swapchainCount      = 1;
+    presentInfo.pSwapchains         = swapchain;
+    presentInfo.pImageIndices       = &m_ImageIndex;
 
     VK_CHECK(vkQueuePresentKHR(m_Context->GetPresentQueue(), &presentInfo))
     m_FrameIndex = (m_FrameIndex + 1) % Swapchain::FRAMES_IN_FLIGHT;
@@ -153,7 +150,7 @@ void Renderer::EndFrame()
  */
 void Renderer::GeometryPass()
 {
-    m_Swapchain.ChangeLayout(m_ImageIndex, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+    m_Swapchain.ChangeLayout(m_ImageIndex, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, m_CommandBuffers[m_FrameIndex]);
 
     Pipeline::Attachment colorAttachment{};
     colorAttachment.imageView   = m_Swapchain.GetImageViews()[m_ImageIndex];
@@ -172,11 +169,11 @@ void Renderer::GeometryPass()
     Pipeline::RenderInfo renderInfo{};
     renderInfo.colorAttachments = { colorAttachment };
     renderInfo.depthAttachment  = depthAttachment;
-    renderInfo.extent = m_Swapchain.GetExtent();
+    renderInfo.extent           = m_Swapchain.GetExtent();
 
     m_GeometryPipeline->BeginRender(m_CommandBuffers[m_FrameIndex], renderInfo);
 
-    m_ActiveScene->GetCamera().Bind(m_CommandBuffers[m_FrameIndex], m_GeometryPipeline->GetLayout(), m_FrameIndex);
+    m_ActiveScene->GetCamera().Bind(m_CommandBuffers[m_FrameIndex], m_GeometryPipeline->GetLayout(), m_FrameIndex, 0U);
 
     static auto startTime = std::chrono::high_resolution_clock::now();
     auto currentTime = std::chrono::high_resolution_clock::now();
@@ -186,6 +183,7 @@ void Renderer::GeometryPass()
     {
         sceneMember->Rotate(0.0f, 0.0f, time * glm::radians(90.0f)).Translate(std::sin(time * 2), std::cos(time * 2), 0.0f);
         sceneMember->UpdateModelMatrix();
+        sceneMember->GetMesh().GetTexture().BindDescriptorSet(m_CommandBuffers[m_FrameIndex], m_GeometryPipeline->GetLayout(), 1U);
 
         m_GeometryPipeline->PushConstant(VK_SHADER_STAGE_VERTEX_BIT, 0U, sizeof(glm::mat4), &sceneMember->GetModelMatrix());
         m_GeometryPipeline->BindVertexBuffer(sceneMember->GetMesh().GetVertexBuffer());

@@ -5,10 +5,10 @@
 #include "Window.hpp"
 
 Context::Context(const Window* window)
-        :   m_Instance{}, m_Allocator{}, m_DebugMessenger{}, m_PhysicalDevice{},
-            m_LogicalDevice{}, m_GraphicsQueue{}, m_PresentQueue{}, m_TransferQueue{}, m_GraphicsQueueFamily{},
-            m_TransferQueueFamily{}, m_CommandPool{}, m_Surface{}, m_SurfaceExtent{window->GetExtent2D()},
-            m_EnableValidation(true)
+        : m_Instance{}, m_Allocator{}, m_DebugMessenger{}, m_PhysicalDevice{},
+          m_LogicalDevice{}, m_GraphicsQueue{}, m_PresentQueue{}, m_TransferQueue{}, m_GraphicsQueueFamily{},
+          m_TransferQueueFamily{}, m_GraphicsCommandPool{}, m_Surface{}, m_SurfaceExtent{window->GetExtent2D()},
+          m_EnableValidation(true)
 {
 #ifdef NDEBUG
     m_EnableValidation = false;
@@ -89,7 +89,7 @@ void Context::InitCommandPool()
     commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     commandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     commandPoolCreateInfo.queueFamilyIndex = m_GraphicsQueueFamily;
-    VK_CHECK(vkCreateCommandPool(m_LogicalDevice, &commandPoolCreateInfo, nullptr, &m_CommandPool))
+    VK_CHECK(vkCreateCommandPool(m_LogicalDevice, &commandPoolCreateInfo, nullptr, &m_GraphicsCommandPool))
 }
 
 void Context::InitTransferCommandPool()
@@ -106,7 +106,7 @@ VkCommandBuffer Context::BeginSingleTimeCommands(CommandType type)
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandPool = type == CommandType::GRAPHICS ? m_CommandPool : m_TransferCommandPool;
+    allocInfo.commandPool = type == CommandType::GRAPHICS ? m_GraphicsCommandPool : m_TransferCommandPool;
     allocInfo.commandBufferCount = 1U;
 
     VkCommandBuffer commandBuffer;
@@ -135,7 +135,7 @@ void Context::EndSingleTimeCommands(CommandType type, VkCommandBuffer commandBuf
         case CommandType::GRAPHICS:
             vkQueueSubmit(m_GraphicsQueue, 1U, &submitInfo, VK_NULL_HANDLE);
             vkQueueWaitIdle(m_GraphicsQueue);
-            vkFreeCommandBuffers(m_LogicalDevice, m_CommandPool, 1U, &commandBuffer);
+            vkFreeCommandBuffers(m_LogicalDevice, m_GraphicsCommandPool, 1U, &commandBuffer);
             break;
         case CommandType::TRANSFER:
             vkQueueSubmit(m_TransferQueue, 1U, &submitInfo, VK_NULL_HANDLE);
@@ -151,9 +151,9 @@ Context::~Context()
 {
     vkDeviceWaitIdle(m_LogicalDevice);
 
-    if(m_CommandPool)
+    if(m_GraphicsCommandPool)
     {
-        vkDestroyCommandPool(m_LogicalDevice, m_CommandPool, nullptr);
+        vkDestroyCommandPool(m_LogicalDevice, m_GraphicsCommandPool, nullptr);
     }
     if(m_TransferCommandPool)
     {
