@@ -50,12 +50,16 @@ void Context::InitVulkan(const Window* window)
     dynamicRendering.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
     dynamicRendering.dynamicRendering = VK_TRUE;
 
+    VkPhysicalDeviceFeatures features{};
+    features.samplerAnisotropy = VK_TRUE;
+
     vkb::PhysicalDeviceSelector pDeviceSelector{vkbInstance};
     vkb::PhysicalDevice vkbPhysicalDevice = pDeviceSelector.set_minimum_version(1, 1)
             .set_surface(m_Surface)
             .add_desired_extension("VK_KHR_dynamic_rendering")
             .add_desired_extension("VK_KHR_depth_stencil_resolve")
             .add_desired_extension("VK_KHR_create_renderpass2")
+            .set_required_features(features)
             .require_separate_transfer_queue()
             .select()
             .value();

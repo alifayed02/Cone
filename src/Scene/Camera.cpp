@@ -107,8 +107,6 @@ void Camera::SetExtent(const VkExtent2D extent)
     {
         m_BufferObjects[i].projectionMatrix = glm::perspective(glm::radians(45.0f), (float)m_CameraExtent.width/(float)m_CameraExtent.height, 0.1f, 10.0f);
         m_BufferObjects[i].projectionMatrix[1][1] *= -1;
-
-//        m_BufferObjects[i].viewMatrix = glm::lookAt(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         m_BufferObjects[i].viewMatrix = glm::mat4(1.0f);
 
         m_BufferObjects[i].viewProjectionMatrix = m_BufferObjects[i].projectionMatrix * m_BufferObjects[i].viewMatrix;
