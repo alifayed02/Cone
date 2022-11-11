@@ -38,7 +38,6 @@ void Buffer::Transfer(Buffer* dstBuffer)
 
 Buffer::~Buffer()
 {
-//    vkDeviceWaitIdle(m_Context->GetLogicalDevice());
     if(m_Buffer)
     {
         vmaDestroyBuffer(m_Context->GetAllocator(), m_Buffer, m_Allocation);

@@ -1,7 +1,7 @@
 #include "Core/CnPch.hpp"
 #include "Texture.hpp"
 
-#include "Context.hpp"
+#include "Renderer/Context.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"

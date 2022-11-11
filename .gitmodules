@@ -13,3 +13,6 @@
 [submodule "src/Vendor/stb"]
 	path = src/Vendor/stb
 	url = https://github.com/nothings/stb
+[submodule "src/Vendor/tinygltf"]
+	path = src/Vendor/tinygltf
+	url = https://github.com/syoyo/tinygltf

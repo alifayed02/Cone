@@ -2,7 +2,7 @@
 
 #include "Renderer/Buffer/VertexBuffer.hpp"
 #include "Renderer/Buffer/IndexBuffer.hpp"
-#include "Renderer/Texture.hpp"
+#include "Asset/Texture.hpp"
 
 class Context;
 

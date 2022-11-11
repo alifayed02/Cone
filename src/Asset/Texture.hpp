@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Buffer/Buffer.hpp"
-#include "Image.hpp"
+#include "Renderer/Buffer/Buffer.hpp"
+#include "Renderer/Image.hpp"
 
 class Context;
 

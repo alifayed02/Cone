@@ -76,6 +76,7 @@ void Camera::CreateDescriptorBuffers()
         bufferInfo.offset   = 0;
         bufferInfo.range    = m_Buffers[i]->GetSize();
 
+
         VkWriteDescriptorSet writeSet{};
         writeSet.sType              = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeSet.dstSet             = m_DescriptorSets[i];
