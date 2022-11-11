@@ -2,6 +2,9 @@
 
 #include "Context.hpp"
 
+#include "Buffer/VertexBuffer.hpp"
+#include "Buffer/IndexBuffer.hpp"
+
 class Pipeline
 {
 public:
@@ -10,7 +13,11 @@ public:
         std::string_view        vertexPath;
         std::string_view        fragmentPath;
         std::vector<VkFormat>   colorFormats;
+        VkFormat                depthFormat;
         VkExtent2D              extent;
+
+        std::vector<VkDescriptorSetLayout>  layouts;
+        std::vector<VkPushConstantRange>    pushConstants;
     };
     struct Attachment
     {
@@ -23,6 +30,7 @@ public:
     struct RenderInfo
     {
         std::vector<Attachment> colorAttachments;
+        Attachment              depthAttachment;
         VkExtent2D              extent;
     };
 public:
@@ -34,7 +42,12 @@ public:
 public:
     void BeginRender(VkCommandBuffer commandBuffer, const RenderInfo& renderInfo);
     void EndRender();
-    void Draw(const uint32_t vertexCount);
+    void DrawIndexed(uint32_t indexCount);
+    void BindVertexBuffer(const VertexBuffer& vb);
+    void BindIndexBuffer(const IndexBuffer& ib);
+    void PushConstant(VkShaderStageFlags shaderStageFlags, uint32_t offset, uint32_t size, const void* data);
+public:
+    inline VkPipelineLayout GetLayout() const { return m_PipelineLayout; }
 private:
     std::vector<char> ReadShaderCode(std::string_view path);
     VkShaderModule CreateShaderModule(std::span<char> shaderCode);

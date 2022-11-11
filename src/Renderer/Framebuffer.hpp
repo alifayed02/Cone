@@ -10,6 +10,7 @@ public:
     struct AttachmentInfo
     {
         VkFormat            format;
+        VkImageLayout       layout;
         VkImageUsageFlags   usageFlags;
         VkImageAspectFlags  aspectFlags;
     };

@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include "Core/CnPch.hpp"
 #include "Core/Cone.hpp"
 

@@ -4,6 +4,9 @@
 #include "Renderer/Context.hpp"
 #include "Renderer/Renderer.hpp"
 
+#include "Scene/Scene.hpp"
+#include "Scene/SceneMember.hpp"
+
 class Cone
 {
 public:
@@ -14,9 +17,10 @@ public:
 private:
     void Init();
     void Draw();
+    void CreateMainScene();
 private:
-    std::string test;
     std::unique_ptr<Window>     m_Window;
     std::unique_ptr<Context>    m_Context;
     std::unique_ptr<Renderer>   m_Renderer;
+    std::unique_ptr<Scene>      m_MainScene;
 };

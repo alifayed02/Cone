@@ -4,6 +4,8 @@
 
 #include "vk-bootstrap/src/VkBootstrap.h"
 
+#include "vk_mem_alloc.h"
+
 #include <vector>
 #include <string>
 #include <string_view>

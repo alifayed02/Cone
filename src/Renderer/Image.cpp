@@ -2,12 +2,13 @@
 #include "Image.hpp"
 
 #include "Context.hpp"
+#include "Buffer/Buffer.hpp"
 
 Image::Image(Context* context, const ImageInfo& imageInfo)
     :   m_Context{context}, m_Image{}, m_ImageView{},
-        m_ImageLayout{VK_IMAGE_LAYOUT_UNDEFINED}, m_ImageDimension{imageInfo.dimension},
-        m_ImageFormat{imageInfo.format}, m_ImageMemory{}, m_UsageFlags{imageInfo.usageFlags},
-        m_AspectFlags{imageInfo.aspectFlags}
+        m_ImageLayout{imageInfo.initialLayout}, m_ImageFormat{imageInfo.format},
+        m_ImageDimension{imageInfo.dimension}, m_UsageFlags{imageInfo.usageFlags},
+        m_AspectFlags{imageInfo.aspectFlags}, m_Allocation{}, m_AllocationInfo{}
 {
     CreateImage();
     CreateImageView();
@@ -15,11 +16,43 @@ Image::Image(Context* context, const ImageInfo& imageInfo)
 
 void Image::ChangeLayout(VkImageLayout newLayout)
 {
-    VkCommandBuffer commandBuffer = m_Context->BeginSingleTimeCommands();
+    assert(m_ImageLayout != newLayout && "Error: Old Layout Is The Same As New Layout!");
+
+    VkCommandBuffer commandBuffer = m_Context->BeginSingleTimeCommands(Context::CommandType::GRAPHICS);
+//    std::cout << "Image::ChangeLayout -> " << &commandBuffer << '\n';
     Utilities::ChangeLayout(commandBuffer, m_ImageLayout, newLayout, m_Image, m_AspectFlags);
-    m_Context->EndSingleTimeCommands(commandBuffer);
+    m_Context->EndSingleTimeCommands(Context::CommandType::GRAPHICS, commandBuffer);
 
     m_ImageLayout = newLayout;
+}
+
+void Image::CopyDataToImage(const Buffer* buffer, const VkExtent3D imageExtent)
+{
+    VkCommandBuffer commandBuffer = m_Context->BeginSingleTimeCommands(Context::CommandType::TRANSFER);
+
+    VkBufferImageCopy region{};
+    region.bufferOffset = 0;
+    region.bufferRowLength = 0;
+    region.bufferImageHeight = 0;
+
+    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    region.imageSubresource.mipLevel = 0;
+    region.imageSubresource.baseArrayLayer = 0;
+    region.imageSubresource.layerCount = 1;
+
+    region.imageOffset = { 0, 0, 0 };
+    region.imageExtent = imageExtent;
+
+    vkCmdCopyBufferToImage(
+            commandBuffer,
+            buffer->GetBuffer(),
+            m_Image,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1,
+            &region
+    );
+
+    m_Context->EndSingleTimeCommands(Context::CommandType::TRANSFER, commandBuffer);
 }
 
 void Image::CreateImage()
@@ -37,9 +70,13 @@ void Image::CreateImage()
     imageCreateInfo.tiling          = VK_IMAGE_TILING_OPTIMAL;
     imageCreateInfo.usage           = m_UsageFlags;
     imageCreateInfo.sharingMode     = VK_SHARING_MODE_EXCLUSIVE;
-    imageCreateInfo.initialLayout   = VK_IMAGE_LAYOUT_UNDEFINED;
+    imageCreateInfo.initialLayout   = m_ImageLayout;
 
-    VK_CHECK(vkCreateImage(m_Context->GetLogicalDevice(), &imageCreateInfo, nullptr, &m_Image))
+    VmaAllocationCreateInfo vmaAllocationCreateInfo{};
+    vmaAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+    vmaAllocationCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+
+    VK_CHECK(vmaCreateImage(m_Context->GetAllocator(), &imageCreateInfo, &vmaAllocationCreateInfo, &m_Image, &m_Allocation, &m_AllocationInfo))
 }
 
 void Image::CreateImageView()
@@ -66,10 +103,6 @@ Image::~Image()
     }
     if(m_Image)
     {
-        vkDestroyImage(m_Context->GetLogicalDevice(), m_Image, nullptr);
-    }
-    if(m_ImageMemory)
-    {
-        vkFreeMemory(m_Context->GetLogicalDevice(), m_ImageMemory, nullptr);
+        vmaDestroyImage(m_Context->GetAllocator(), m_Image, m_Allocation);
     }
 }

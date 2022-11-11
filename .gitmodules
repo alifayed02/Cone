@@ -7,3 +7,12 @@
 [submodule "src/Vendor/vk-bootstrap"]
 	path = src/Vendor/vk-bootstrap
 	url = https://github.com/charles-lunarg/vk-bootstrap
+[submodule "src/Vendor/VulkanMemoryAllocator"]
+	path = src/Vendor/VulkanMemoryAllocator
+	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
+[submodule "src/Vendor/stb"]
+	path = src/Vendor/stb
+	url = https://github.com/nothings/stb
+[submodule "src/Vendor/tinygltf"]
+	path = src/Vendor/tinygltf
+	url = https://github.com/syoyo/tinygltf

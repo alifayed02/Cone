@@ -7,8 +7,8 @@
 struct Vertex
 {
     glm::vec3 pos;
-    glm::vec3 normal;
-    glm::vec2 texcoord;
+    glm::vec3 color;
+    glm::vec2 texCoord;
 
     static constexpr VkVertexInputBindingDescription GetBindingDescription()
     {
@@ -24,30 +24,30 @@ struct Vertex
         return std::array<VkVertexInputAttributeDescription, 3> {
                 VkVertexInputAttributeDescription
                 {
-                        .location = 0U,
-                        .binding = 0U,
-                        .format = VK_FORMAT_R32G32B32_SFLOAT,
-                        .offset = offsetof(Vertex, pos),
+                        .location   = 0U,
+                        .binding    = 0U,
+                        .format     = VK_FORMAT_R32G32B32_SFLOAT,
+                        .offset     = offsetof(Vertex, pos),
                 },
                 VkVertexInputAttributeDescription
                 {
-                        .location = 1U,
-                        .binding = 0U,
-                        .format = VK_FORMAT_R32G32B32_SFLOAT,
-                        .offset = offsetof(Vertex, normal),
+                        .location   = 1U,
+                        .binding    = 0U,
+                        .format     = VK_FORMAT_R32G32B32_SFLOAT,
+                        .offset     = offsetof(Vertex, color),
                 },
                 VkVertexInputAttributeDescription
                 {
-                        .location = 3U,
-                        .binding = 0U,
-                        .format = VK_FORMAT_R32G32_SFLOAT,
-                        .offset = offsetof(Vertex, texcoord),
+                         .location  = 2U,
+                         .binding   = 0U,
+                         .format    = VK_FORMAT_R32G32_SFLOAT,
+                         .offset    = offsetof(Vertex, texCoord),
                 }
         };
     }
 
-    bool operator==(const Vertex& other) const
+    bool operator==(const Vertex& otherVertex) const
     {
-        return pos == other.pos && texcoord == other.texcoord && normal == other.normal;
+        return pos == otherVertex.pos && color == otherVertex.color && texCoord == otherVertex.texCoord;
     }
 };
