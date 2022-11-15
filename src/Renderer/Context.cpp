@@ -7,26 +7,39 @@
 Context::Context(const Window* window)
         : m_Instance{}, m_Allocator{}, m_DebugMessenger{}, m_PhysicalDevice{},
           m_LogicalDevice{}, m_GraphicsQueue{}, m_PresentQueue{}, m_TransferQueue{}, m_GraphicsQueueFamily{},
-          m_TransferQueueFamily{}, m_GraphicsCommandPool{}, m_Surface{}, m_SurfaceExtent{window->GetExtent2D()},
-          m_EnableValidation(true)
+          m_TransferQueueFamily{}, m_GraphicsCommandPool{}, m_TransferCommandPool{}, m_Surface{},
+          m_SurfaceExtent{window->GetExtent2D()}, m_EnableValidation{true}, m_HasSeperateTransferQueue{false}
 {
 #ifdef NDEBUG
     m_EnableValidation = false;
 #endif
     InitVulkan(window);
     InitCommandPool();
-    InitTransferCommandPool();
+
+    if(m_HasSeperateTransferQueue)
+    {
+        InitTransferCommandPool();
+    }
 }
 
 void Context::InitVulkan(const Window* window)
 {
+    /*
+     * Volk
+     */
+    VkResult volkInit = volkInitialize();
+    if(volkInit != VK_SUCCESS)
+    {
+        throw std::runtime_error("Error: Failed to initialize Volk.");
+    }
+
     /*
      * Instance
      */
     vkb::InstanceBuilder instanceBuilder;
     auto inst_ret = instanceBuilder.set_app_name("Cone Engine")
             .request_validation_layers(m_EnableValidation)
-            .require_api_version(1, 3, 0)
+            .require_api_version(1, 2, 0)
             .enable_extension("VK_KHR_surface")
             .use_default_debug_messenger();
 
@@ -37,6 +50,8 @@ void Context::InitVulkan(const Window* window)
     vkb::Instance vkbInstance = inst_ret.build().value();
     m_Instance = vkbInstance.instance;
     m_DebugMessenger = vkbInstance.debug_messenger;
+
+    volkLoadInstance(m_Instance);
 
     /*
      * Surface
@@ -54,35 +69,49 @@ void Context::InitVulkan(const Window* window)
     features.samplerAnisotropy = VK_TRUE;
 
     vkb::PhysicalDeviceSelector pDeviceSelector{vkbInstance};
+
     vkb::PhysicalDevice vkbPhysicalDevice = pDeviceSelector.set_minimum_version(1, 1)
             .set_surface(m_Surface)
             .add_desired_extension("VK_KHR_dynamic_rendering")
             .add_desired_extension("VK_KHR_depth_stencil_resolve")
             .add_desired_extension("VK_KHR_create_renderpass2")
             .set_required_features(features)
-            .require_separate_transfer_queue()
             .select()
             .value();
+
+    m_HasSeperateTransferQueue = vkbPhysicalDevice.has_separate_transfer_queue();
+
     vkb::DeviceBuilder deviceBuilder{vkbPhysicalDevice};
     vkb::Device vkbLogicalDevice = deviceBuilder
             .add_pNext(&dynamicRendering)
             .build()
             .value();
+
     m_PhysicalDevice = vkbPhysicalDevice.physical_device;
     m_LogicalDevice = vkbLogicalDevice.device;
 
+    volkLoadDevice(m_LogicalDevice);
+
     m_GraphicsQueue = vkbLogicalDevice.get_queue(vkb::QueueType::graphics).value();
     m_PresentQueue = vkbLogicalDevice.get_queue(vkb::QueueType::present).value();
-    m_TransferQueue = vkbLogicalDevice.get_queue(vkb::QueueType::transfer).value();
-
     m_GraphicsQueueFamily = vkbLogicalDevice.get_queue_index(vkb::QueueType::graphics).value();
-    m_TransferQueueFamily = vkbLogicalDevice.get_queue_index(vkb::QueueType::transfer).value();
+
+    if(m_HasSeperateTransferQueue)
+    {
+        m_TransferQueue = vkbLogicalDevice.get_queue(vkb::QueueType::transfer).value();
+        m_TransferQueueFamily = vkbLogicalDevice.get_queue_index(vkb::QueueType::transfer).value();
+    }
+
+    VmaVulkanFunctions vmaVulkanFunctions{};
+    vmaVulkanFunctions.vkGetInstanceProcAddr    = vkGetInstanceProcAddr;
+    vmaVulkanFunctions.vkGetDeviceProcAddr      = vkGetDeviceProcAddr;
 
     VmaAllocatorCreateInfo allocatorCreateInfo{};
-    allocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_0;
-    allocatorCreateInfo.physicalDevice = m_PhysicalDevice;
-    allocatorCreateInfo.device = m_LogicalDevice;
-    allocatorCreateInfo.instance = m_Instance;
+    allocatorCreateInfo.vulkanApiVersion    = VK_API_VERSION_1_2;
+    allocatorCreateInfo.physicalDevice      = m_PhysicalDevice;
+    allocatorCreateInfo.device              = m_LogicalDevice;
+    allocatorCreateInfo.instance            = m_Instance;
+    allocatorCreateInfo.pVulkanFunctions    = &vmaVulkanFunctions;
 
     vmaCreateAllocator(&allocatorCreateInfo, &m_Allocator);
 }
@@ -107,6 +136,11 @@ void Context::InitTransferCommandPool()
 
 VkCommandBuffer Context::BeginSingleTimeCommands(CommandType type)
 {
+    if(!m_HasSeperateTransferQueue)
+    {
+        type = CommandType::GRAPHICS;
+    }
+
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -127,6 +161,11 @@ VkCommandBuffer Context::BeginSingleTimeCommands(CommandType type)
 
 void Context::EndSingleTimeCommands(CommandType type, VkCommandBuffer commandBuffer)
 {
+    if(!m_HasSeperateTransferQueue)
+    {
+        type = CommandType::GRAPHICS;
+    }
+
     vkEndCommandBuffer(commandBuffer);
 
     VkSubmitInfo submitInfo{};

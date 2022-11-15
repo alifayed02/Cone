@@ -15,11 +15,15 @@ target_compile_options(Cone PRIVATE
         $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic>
         )
 
-# Vulkan
-set(Vulkan_LIBRARY $ENV{VULKAN_SDK}/Lib/vulkan-1.lib)
-find_package(Vulkan REQUIRED FATAL_ERROR)
-target_link_libraries(${PROJECT_NAME} Vulkan::Vulkan)
-#message(STATUS "Found Vulkan: $ENV{VULKAN_SDK}")
+# Volk
+#set(Vulkan_LIBRARY $ENV{VULKAN_SDK}/lib/vulkan-1.lib)
+if (WIN32)
+    set(VOLK_STATIC_DEFINES VK_USE_PLATFORM_WIN32_KHR)
+elseif(APPLE)
+    set(VOLK_STATIC_DEFINES VK_USE_PLATFORM_MACOS_MVK)
+endif()
+add_subdirectory(src/Vendor/volk)
+target_link_libraries(${PROJECT_NAME} PRIVATE volk)
 
 # GLFW
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
@@ -27,17 +31,8 @@ set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
 add_subdirectory(src/Vendor/glfw)
-target_link_libraries(${PROJECT_NAME} glfw)
-
-# GLM
-add_subdirectory(src/Vendor/glm)
-
-# STB
-add_subdirectory(src/Vendor/tinygltf)
+target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
 
 # VkBootstrap
 add_subdirectory(src/Vendor/vk-bootstrap)
-target_link_libraries(${PROJECT_NAME} vk-bootstrap::vk-bootstrap)
-
-# Vulkan Memory Allocator
-add_subdirectory(src/Vendor/VulkanMemoryAllocator)
+target_link_libraries(${PROJECT_NAME} PRIVATE vk-bootstrap::vk-bootstrap)

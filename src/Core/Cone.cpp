@@ -64,12 +64,12 @@ void Cone::CreateMainScene()
     Mesh::MeshInfo rectangle{};
     rectangle.vertices  = vertices;
     rectangle.indices   = indices;
-    rectangle.texturePath = R"(D:\Graphics\Cone\Textures\blendermonkey.jpg)";
+    rectangle.texturePath = R"(/Users/alifayed/CLionProjects/Cone/Textures/blendermonkey.jpg)";
 
     Mesh::MeshInfo rectangle2{};
     rectangle2.vertices = vertices2;
     rectangle2.indices = indices;
-    rectangle2.texturePath = R"(D:\Graphics\Cone\Textures\stanfordbunny.jpg)";
+    rectangle2.texturePath = R"(/Users/alifayed/CLionProjects/Cone/Textures/stanfordbunny.jpg)";
 
     m_MainScene->AddSceneMember(rectangle);
     m_MainScene->AddSceneMember(rectangle2);

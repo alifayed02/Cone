@@ -1,6 +1,7 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
+#define VK_NO_PROTOTYPES
+#include <volk.h>
 
 #include "vk-bootstrap/src/VkBootstrap.h"
 

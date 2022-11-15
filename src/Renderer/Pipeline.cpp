@@ -188,7 +188,7 @@ void Pipeline::BeginRender(VkCommandBuffer commandBuffer, const RenderInfo& rend
     dynRenderingInfo.pColorAttachments      = renderAttachments.data();
     dynRenderingInfo.pDepthAttachment       = &depthRenderingAttachmentInfo;
 
-    vkCmdBeginRendering(m_CurrentCommandBuffer, &dynRenderingInfo);
+    vkCmdBeginRenderingKHR(m_CurrentCommandBuffer, &dynRenderingInfo);
 
     VkViewport viewport{};
     viewport.width      = static_cast<float>(renderInfo.extent.width);
@@ -206,7 +206,7 @@ void Pipeline::BeginRender(VkCommandBuffer commandBuffer, const RenderInfo& rend
 
 void Pipeline::EndRender()
 {
-    vkCmdEndRendering(m_CurrentCommandBuffer);
+    vkCmdEndRenderingKHR(m_CurrentCommandBuffer);
     m_CurrentCommandBuffer = VK_NULL_HANDLE;
 }
 

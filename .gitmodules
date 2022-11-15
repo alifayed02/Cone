@@ -16,3 +16,6 @@
 [submodule "src/Vendor/tinygltf"]
 	path = src/Vendor/tinygltf
 	url = https://github.com/syoyo/tinygltf
+[submodule "src/Vendor/volk"]
+	path = src/Vendor/volk
+	url = https://github.com/zeux/volk
