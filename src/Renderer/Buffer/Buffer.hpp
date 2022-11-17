@@ -16,6 +16,8 @@ public:
     Buffer(Context* context, const BufferInfo& bufferInfo);
     ~Buffer();
 
+    Buffer(Buffer&& otherBuffer) = default;
+
     Buffer(const Buffer& otherBuffer) = delete;
     Buffer& operator=(const Buffer& otherBuffer) = delete;
 public:

@@ -6,6 +6,7 @@
 #include "glm/glm.hpp"
 
 class Context;
+class GLFWwindow;
 
 class Camera
 {
@@ -23,13 +24,19 @@ public:
     void WriteBuffer(uint32_t frameIndex);
     void Bind(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, uint32_t frameIndex, uint32_t setIndex) const;
     void SetExtent(VkExtent2D extent);
+    void ProcessKeyboardInputs(GLFWwindow* window);
+    void ProcessMouseMovements(GLFWwindow* window);
+    void Update(uint32_t frameIndex);
 public:
     inline VkDescriptorSetLayout GetCameraLayout() const { return m_DescriptorSetLayout; }
-    inline auto& GetBufferObjects() { return m_BufferObjects; }
+    inline VkDescriptorSet GetDescriptorSet(const uint32_t frameIndex) const { return m_DescriptorSets[frameIndex]; }
 private:
     void CreateDescriptorPool();
     void CreateDescriptorSet();
     void CreateDescriptorBuffers();
+    void RotateVector(float angle, const glm::vec3& axis, glm::vec3& rotationVec);
+    void UpdateCameraUVN();
+    glm::mat4 CreateCameraMatrix();
 private:
     Context*                                                            m_Context;
     VkExtent2D                                                          m_CameraExtent;
@@ -38,4 +45,13 @@ private:
     std::array<VkDescriptorSet, Swapchain::FRAMES_IN_FLIGHT>            m_DescriptorSets;
     std::array<std::unique_ptr<Buffer>, Swapchain::FRAMES_IN_FLIGHT>    m_Buffers;
     std::array<CameraBufferObject, Swapchain::FRAMES_IN_FLIGHT>         m_BufferObjects;
+private:
+    glm::vec3   m_Position;
+    glm::vec3   m_Target;
+    glm::vec3   m_Up;
+    float       m_Speed;
+    float       m_AngleHorizontal;
+    float       m_AngleVertical;
+    double      m_MousePosX;
+    double      m_MousePosY;
 };

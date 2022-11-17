@@ -15,31 +15,23 @@ public:
         int channels;
     };
 public:
-    Texture(Context* context, const std::string& path);
+    Texture(Context* context, std::string_view name, std::string_view path);
     ~Texture();
 
     Texture(const Texture& otherTexture) = delete;
     Texture& operator=(const Texture& otherTexture) = delete;
 public:
-    void BindDescriptorSet(VkCommandBuffer commandBuffer, VkPipelineLayout layout, uint32_t index) const;
-public:
-    inline VkDescriptorSetLayout GetLayout() const { return m_DescriptorSetLayout; }
+    inline VkSampler GetSampler() const { return m_Sampler; }
+    inline const Image* GetImage() const { return m_Image.get(); }
 private:
     void CreateImage(const std::string& path);
-    void CreateDescriptorPool();
-    void CreateDescriptorSet();
     void CreateSampler();
 private:
     Context*                m_Context;
+    std::string             m_Name;
+    std::string             m_FilePath;
     std::unique_ptr<Buffer> m_StagingBuffer;
     std::unique_ptr<Image>  m_Image;
     VkSampler               m_Sampler;
     TextureInfo             m_TextureInfo;
-
-    // Each texture should not have pool and set
-    // Material class with albedo normal metallic etc texture
-    // Descriptor Pool and Sets there
-    VkDescriptorPool        m_DescriptorPool;
-    VkDescriptorSet         m_DescriptorSet;
-    VkDescriptorSetLayout   m_DescriptorSetLayout;
 };

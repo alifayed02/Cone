@@ -7,7 +7,7 @@
 struct Vertex
 {
     glm::vec3 pos;
-    glm::vec3 color;
+    glm::vec3 normal;
     glm::vec2 texCoord;
 
     static constexpr VkVertexInputBindingDescription GetBindingDescription()
@@ -34,7 +34,7 @@ struct Vertex
                         .location   = 1U,
                         .binding    = 0U,
                         .format     = VK_FORMAT_R32G32B32_SFLOAT,
-                        .offset     = offsetof(Vertex, color),
+                        .offset     = offsetof(Vertex, normal),
                 },
                 VkVertexInputAttributeDescription
                 {
@@ -48,6 +48,6 @@ struct Vertex
 
     bool operator==(const Vertex& otherVertex) const
     {
-        return pos == otherVertex.pos && color == otherVertex.color && texCoord == otherVertex.texCoord;
+        return pos == otherVertex.pos && normal == otherVertex.normal && texCoord == otherVertex.texCoord;
     }
 };

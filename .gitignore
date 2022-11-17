@@ -7,3 +7,5 @@ cmake-build-release/
 
 # Files
 Notes.txt
+.DS_Store
+src/.DS_Store

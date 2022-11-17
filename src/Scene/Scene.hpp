@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Camera.hpp"
-#include "Mesh.hpp"
+#include "Asset/SubMesh.hpp"
 
 #include "Renderer/Swapchain.hpp"
 
@@ -9,6 +9,7 @@
 
 class SceneMember;
 class Context;
+class Mesh;
 
 class Scene
 {
@@ -19,7 +20,7 @@ public:
     Scene(const Scene& otherScene) = delete;
     Scene& operator=(const Scene& otherScene) = delete;
 public:
-    void AddSceneMember(const Mesh::MeshInfo& meshInfo);
+    SceneMember* AddSceneMember(Mesh* mesh);
 public:
     inline const std::vector<std::unique_ptr<SceneMember>>& GetSceneMembers() const { return m_SceneMembers; }
     inline Camera& GetCamera() { return m_Camera; }

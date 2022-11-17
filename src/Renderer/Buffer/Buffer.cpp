@@ -41,5 +41,6 @@ Buffer::~Buffer()
     if(m_Buffer)
     {
         vmaDestroyBuffer(m_Context->GetAllocator(), m_Buffer, m_Allocation);
+        m_Buffer = VK_NULL_HANDLE;
     }
 }

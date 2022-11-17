@@ -1,6 +1,7 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
+#define VK_NO_PROTOTYPES
+#include <volk.h>
 
 #include "vk-bootstrap/src/VkBootstrap.h"
 
@@ -11,6 +12,7 @@
 #include <string_view>
 #include <span>
 #include <array>
+#include <unordered_map>
 
 #include <iostream>
 #include <fstream>

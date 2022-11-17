@@ -188,7 +188,7 @@ void Pipeline::BeginRender(VkCommandBuffer commandBuffer, const RenderInfo& rend
     dynRenderingInfo.pColorAttachments      = renderAttachments.data();
     dynRenderingInfo.pDepthAttachment       = &depthRenderingAttachmentInfo;
 
-    vkCmdBeginRendering(m_CurrentCommandBuffer, &dynRenderingInfo);
+    vkCmdBeginRenderingKHR(m_CurrentCommandBuffer, &dynRenderingInfo);
 
     VkViewport viewport{};
     viewport.width      = static_cast<float>(renderInfo.extent.width);
@@ -206,7 +206,7 @@ void Pipeline::BeginRender(VkCommandBuffer commandBuffer, const RenderInfo& rend
 
 void Pipeline::EndRender()
 {
-    vkCmdEndRendering(m_CurrentCommandBuffer);
+    vkCmdEndRenderingKHR(m_CurrentCommandBuffer);
     m_CurrentCommandBuffer = VK_NULL_HANDLE;
 }
 
@@ -223,6 +223,11 @@ void Pipeline::BindVertexBuffer(const VertexBuffer& vb)
 void Pipeline::BindIndexBuffer(const IndexBuffer& ib)
 {
     ib.Bind(m_CurrentCommandBuffer);
+}
+
+void Pipeline::BindDescriptorSet(VkDescriptorSet descriptorSet, const uint32_t index)
+{
+    vkCmdBindDescriptorSets(m_CurrentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, index, 1U, &descriptorSet, 0U, nullptr);
 }
 
 void Pipeline::PushConstant(VkShaderStageFlags shaderStageFlags, uint32_t offset, uint32_t size, const void* data)

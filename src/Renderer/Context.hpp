@@ -50,4 +50,5 @@ private:
     VkExtent2D                  m_SurfaceExtent;
 private:
     bool                        m_EnableValidation;
+    bool                        m_HasSeperateTransferQueue;
 };
