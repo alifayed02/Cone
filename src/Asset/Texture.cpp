@@ -19,7 +19,7 @@ void Texture::CreateImage(const std::string& path)
 
     if(!pixels)
     {
-        std::string errorPath = R"(/Users/alifayed/CLionProjects/Cone/Assets/Textures/White.png)";
+        std::string errorPath = R"(/Users/alifayed/CLionProjects/Cone/Assets/Textures/blendermonkey.jpg)";
         pixels = stbi_load(errorPath.c_str(), &m_TextureInfo.width, &m_TextureInfo.height, &m_TextureInfo.channels, STBI_rgb_alpha);
     }
 

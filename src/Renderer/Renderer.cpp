@@ -182,8 +182,8 @@ void Renderer::GeometryPass()
 
     for(const auto& sceneMember : m_ActiveScene->GetSceneMembers())
     {
-        sceneMember->Rotate(0.0f, time * glm::radians(90.0f), 0.0f).Scale(1.0f, 1.0f, 1.0f)
-                    .Translate(0.0f, 0.0f, -40.0f);
+        sceneMember->Scale(0.01f, 0.01f, 0.01f)
+                    .Translate(0.0f, 0.0f, -1.0f);
         sceneMember->UpdateModelMatrix();
 
         for(const auto& submesh : sceneMember->GetMesh()->m_SubMeshes)

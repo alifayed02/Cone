@@ -14,6 +14,9 @@ void Cone::Init()
     m_Renderer = std::make_unique<Renderer>(m_Context.get(), m_MainScene.get());
     m_Renderer->SetActiveScene(m_MainScene.get());
 
+    glfwSetInputMode(m_Window->GetGLFWWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetCursorPos(m_Window->GetGLFWWindow(), m_Window->GetWidth()/2, m_Window->GetHeight()/2);
+
     std::cout << "[Cone] Successfully Initialized\n";
 }
 
@@ -24,6 +27,10 @@ void Cone::Run()
     while(!m_Window->ShouldClose())
     {
         m_Window->PollEvents();
+
+        m_MainScene->GetCamera().ProcessKeyboardInputs(m_Window->GetGLFWWindow());
+        m_MainScene->GetCamera().ProcessMouseMovements(m_Window->GetGLFWWindow());
+        m_MainScene->GetCamera().Update(m_Renderer->GetCurrentFrame());
 
         Draw();
     }
@@ -41,6 +48,6 @@ void Cone::CreateMainScene()
 {
     m_MainScene = std::make_unique<Scene>(m_Context.get());
 
-    m_AssetManager->LoadMesh("Lantern", "/Assets/Models/Lantern/Lantern.gltf");
-    m_MainScene->AddSceneMember(m_AssetManager->GetMesh("Lantern"));
+    m_AssetManager->LoadMesh("Sponza", "/Assets/Models/Sponza/Sponza.gltf");
+    m_MainScene->AddSceneMember(m_AssetManager->GetMesh("Sponza"));
 }

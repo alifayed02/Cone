@@ -20,7 +20,7 @@ public:
     Scene(const Scene& otherScene) = delete;
     Scene& operator=(const Scene& otherScene) = delete;
 public:
-    void AddSceneMember(Mesh* mesh);
+    SceneMember* AddSceneMember(Mesh* mesh);
 public:
     inline const std::vector<std::unique_ptr<SceneMember>>& GetSceneMembers() const { return m_SceneMembers; }
     inline Camera& GetCamera() { return m_Camera; }

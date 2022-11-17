@@ -22,6 +22,7 @@ public:
     void DrawFrame();
 public:
     inline void SetActiveScene(Scene* scene) { m_ActiveScene = scene; }
+    inline uint32_t GetCurrentFrame() const { return m_FrameIndex; }
 private:
     void Init();
     void CreateCommandBuffers();

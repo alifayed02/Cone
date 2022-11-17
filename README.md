@@ -1,4 +1,4 @@
 # Cone
 Vulkan Rendering Engine
 
-![alt text](https://media1.giphy.com/media/r66NsJcfO4fbPP2iEL/giphy.gif?cid=790b7611c8586973407e244e0c3c8855a5770f1733b82a43&rid=giphy.gif)
+![alt text](https://media1.giphy.com/media/fVkybpiQOz9muyStgr/giphy.gif?cid=790b761157a763b927215e584c8d5001bb53111c8d63113a&rid=giphy.gif&ct=g)
