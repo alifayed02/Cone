@@ -12,6 +12,7 @@
 #include <string_view>
 #include <span>
 #include <array>
+#include <unordered_map>
 
 #include <iostream>
 #include <fstream>

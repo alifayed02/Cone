@@ -3,10 +3,10 @@
 
 #include "glm/gtc/matrix_transform.hpp"
 
-#include "Renderer/Context.hpp"
+#include "Asset/Mesh.hpp"
 
-SceneMember::SceneMember(Context* context, const Mesh::MeshInfo& meshInfo)
-    :   m_Context{context}, m_Mesh{context, meshInfo}, m_Translation{0.0f},
+SceneMember::SceneMember(Mesh* mesh)
+    :   m_Mesh{mesh}, m_Translation{0.0f},
         m_Rotation{0.0f}, m_Scale{1.0f}, m_ModelMatrix{1.0f}
 {
 }

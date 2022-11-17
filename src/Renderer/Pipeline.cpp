@@ -225,6 +225,11 @@ void Pipeline::BindIndexBuffer(const IndexBuffer& ib)
     ib.Bind(m_CurrentCommandBuffer);
 }
 
+void Pipeline::BindDescriptorSet(VkDescriptorSet descriptorSet, const uint32_t index)
+{
+    vkCmdBindDescriptorSets(m_CurrentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, index, 1U, &descriptorSet, 0U, nullptr);
+}
+
 void Pipeline::PushConstant(VkShaderStageFlags shaderStageFlags, uint32_t offset, uint32_t size, const void* data)
 {
     vkCmdPushConstants(m_CurrentCommandBuffer, m_PipelineLayout, shaderStageFlags, offset, size, data);

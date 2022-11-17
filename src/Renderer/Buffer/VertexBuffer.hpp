@@ -11,6 +11,8 @@ public:
     VertexBuffer(Context* context, const std::vector<Vertex>& vertices);
     ~VertexBuffer() = default;
 
+    VertexBuffer(VertexBuffer&& otherBuffer) = default;
+
     VertexBuffer(const VertexBuffer& otherVertexBuffer) = delete;
     VertexBuffer& operator=(const VertexBuffer& otherVertexBuffer) = delete;
 public:

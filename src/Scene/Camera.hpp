@@ -25,7 +25,7 @@ public:
     void SetExtent(VkExtent2D extent);
 public:
     inline VkDescriptorSetLayout GetCameraLayout() const { return m_DescriptorSetLayout; }
-    inline auto& GetBufferObjects() { return m_BufferObjects; }
+    inline VkDescriptorSet GetDescriptorSet(const uint32_t frameIndex) const { return m_DescriptorSets[frameIndex]; }
 private:
     void CreateDescriptorPool();
     void CreateDescriptorSet();

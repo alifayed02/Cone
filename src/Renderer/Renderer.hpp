@@ -43,6 +43,7 @@ private:
     uint32_t                                                    m_ImageIndex;
     size_t                                                      m_FrameIndex;
 private:
+    // Geometry Pass Resources
     std::unique_ptr<Pipeline>       m_GeometryPipeline;
     std::unique_ptr<Image>          m_GeometryDepthImage;
 };

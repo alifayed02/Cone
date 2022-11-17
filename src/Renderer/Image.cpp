@@ -19,7 +19,6 @@ void Image::ChangeLayout(VkImageLayout newLayout)
     assert(m_ImageLayout != newLayout && "Error: Old Layout Is The Same As New Layout!");
 
     VkCommandBuffer commandBuffer = m_Context->BeginSingleTimeCommands(Context::CommandType::GRAPHICS);
-//    std::cout << "Image::ChangeLayout -> " << &commandBuffer << '\n';
     Utilities::ChangeLayout(commandBuffer, m_ImageLayout, newLayout, m_Image, m_AspectFlags);
     m_Context->EndSingleTimeCommands(Context::CommandType::GRAPHICS, commandBuffer);
 

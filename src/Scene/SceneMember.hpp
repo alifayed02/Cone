@@ -1,15 +1,15 @@
 #pragma once
 
-#include "Mesh.hpp"
+#include "Asset/SubMesh.hpp"
 
 #include "glm/glm.hpp"
 
-class Context;
+class Mesh;
 
 class SceneMember
 {
 public:
-    SceneMember(Context* context, const Mesh::MeshInfo& meshInfo);
+    SceneMember(Mesh* mesh);
     ~SceneMember() = default;
 
     SceneMember(const SceneMember& otherSceneMember) = delete;
@@ -20,11 +20,10 @@ public:
     SceneMember& Scale(float x, float y, float z);
     void UpdateModelMatrix();
 public:
-    inline const Mesh& GetMesh() const { return m_Mesh; }
+    inline const Mesh* GetMesh() const { return m_Mesh; }
     inline const glm::mat4& GetModelMatrix() const { return m_ModelMatrix; }
 private:
-    Context*                m_Context;
-    Mesh                    m_Mesh;
+    Mesh*                   m_Mesh;
     glm::vec3               m_Translation;
     glm::vec3               m_Rotation;
     glm::vec3               m_Scale;

@@ -45,6 +45,7 @@ public:
     void DrawIndexed(uint32_t indexCount);
     void BindVertexBuffer(const VertexBuffer& vb);
     void BindIndexBuffer(const IndexBuffer& ib);
+    void BindDescriptorSet(VkDescriptorSet descriptorSet, uint32_t index);
     void PushConstant(VkShaderStageFlags shaderStageFlags, uint32_t offset, uint32_t size, const void* data);
 public:
     inline VkPipelineLayout GetLayout() const { return m_PipelineLayout; }

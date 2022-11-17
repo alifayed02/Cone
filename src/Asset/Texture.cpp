@@ -6,13 +6,10 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 
-Texture::Texture(Context* context, const std::string& path)
-    :   m_Context{context}, m_Sampler{}, m_TextureInfo{},
-        m_DescriptorPool{}, m_DescriptorSet{}, m_DescriptorSetLayout{}
+Texture::Texture(Context* context, std::string_view name, std::string_view path)
+    :   m_Context{context}, m_Name{name.data()}, m_FilePath{path.data()}, m_Sampler{}, m_TextureInfo{}
 {
-    CreateImage(path);
-    CreateDescriptorPool();
-    CreateDescriptorSet();
+    CreateImage(m_FilePath);
     CreateSampler();
 }
 
@@ -22,7 +19,8 @@ void Texture::CreateImage(const std::string& path)
 
     if(!pixels)
     {
-        throw std::runtime_error("Error: Failed to load image from " + path);
+        std::string errorPath = R"(/Users/alifayed/CLionProjects/Cone/Assets/Textures/White.png)";
+        pixels = stbi_load(errorPath.c_str(), &m_TextureInfo.width, &m_TextureInfo.height, &m_TextureInfo.channels, STBI_rgb_alpha);
     }
 
     VkDeviceSize imageSize = m_TextureInfo.width * m_TextureInfo.height * 4;
@@ -52,47 +50,6 @@ void Texture::CreateImage(const std::string& path)
     m_Image->ChangeLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
-void Texture::CreateDescriptorPool()
-{
-    // Pool will hold {1} Sampler
-    VkDescriptorPoolSize poolSize{};
-    poolSize.type               = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSize.descriptorCount    = 1;
-
-    // Pool will hold 1 Descriptor Set
-    VkDescriptorPoolCreateInfo poolCreateInfo{};
-    poolCreateInfo.sType            = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolCreateInfo.maxSets          = 1;
-    poolCreateInfo.poolSizeCount    = 1;
-    poolCreateInfo.pPoolSizes       = &poolSize;
-
-    VK_CHECK(vkCreateDescriptorPool(m_Context->GetLogicalDevice(), &poolCreateInfo, nullptr, &m_DescriptorPool))
-}
-
-void Texture::CreateDescriptorSet()
-{
-    VkDescriptorSetLayoutBinding layoutBinding{};
-    layoutBinding.binding               = 0;
-    layoutBinding.descriptorType        = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    layoutBinding.descriptorCount       = 1;
-    layoutBinding.stageFlags            = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-    VkDescriptorSetLayoutCreateInfo layoutInfo{};
-    layoutInfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = 1;
-    layoutInfo.pBindings    = &layoutBinding;
-
-    vkCreateDescriptorSetLayout(m_Context->GetLogicalDevice(), &layoutInfo, nullptr, &m_DescriptorSetLayout);
-
-    VkDescriptorSetAllocateInfo setAllocateInfo{};
-    setAllocateInfo.sType               = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    setAllocateInfo.descriptorPool      = m_DescriptorPool;
-    setAllocateInfo.descriptorSetCount  = 1;
-    setAllocateInfo.pSetLayouts         = &m_DescriptorSetLayout;
-
-    VK_CHECK(vkAllocateDescriptorSets(m_Context->GetLogicalDevice(), &setAllocateInfo, &m_DescriptorSet))
-}
-
 void Texture::CreateSampler()
 {
     VkSamplerCreateInfo samplerCreateInfo{};
@@ -118,27 +75,6 @@ void Texture::CreateSampler()
     samplerCreateInfo.maxLod                    = 0.0f;
 
     VK_CHECK(vkCreateSampler(m_Context->GetLogicalDevice(), &samplerCreateInfo, nullptr, &m_Sampler))
-
-    VkDescriptorImageInfo descriptorImageInfo{};
-    descriptorImageInfo.sampler     = m_Sampler;
-    descriptorImageInfo.imageView   = m_Image->GetImageView();
-    descriptorImageInfo.imageLayout = m_Image->GetImageLayout();
-
-    VkWriteDescriptorSet writeSet{};
-    writeSet.sType              = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    writeSet.dstSet             = m_DescriptorSet;
-    writeSet.dstBinding         = 0;
-    writeSet.dstArrayElement    = 0;
-    writeSet.descriptorCount    = 1;
-    writeSet.descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    writeSet.pImageInfo         = &descriptorImageInfo;
-
-    vkUpdateDescriptorSets(m_Context->GetLogicalDevice(), 1, &writeSet, 0, nullptr);
-}
-
-void Texture::BindDescriptorSet(VkCommandBuffer commandBuffer, VkPipelineLayout layout, const uint32_t index) const
-{
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, index, 1U, &m_DescriptorSet, 0U, nullptr);
 }
 
 Texture::~Texture()
@@ -146,13 +82,5 @@ Texture::~Texture()
     if(m_Sampler)
     {
         vkDestroySampler(m_Context->GetLogicalDevice(), m_Sampler, nullptr);
-    }
-    if(m_DescriptorSetLayout)
-    {
-        vkDestroyDescriptorSetLayout(m_Context->GetLogicalDevice(), m_DescriptorSetLayout, nullptr);
-    }
-    if(m_DescriptorPool)
-    {
-        vkDestroyDescriptorPool(m_Context->GetLogicalDevice(), m_DescriptorPool, nullptr);
     }
 }

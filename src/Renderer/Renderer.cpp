@@ -3,7 +3,8 @@
 
 #include "Scene/Scene.hpp"
 #include "Scene/SceneMember.hpp"
-
+#include "Asset/Mesh.hpp"
+#include "Asset/Material.hpp"
 #include "Context.hpp"
 
 #include "glm/gtc/matrix_transform.hpp"
@@ -73,7 +74,7 @@ void Renderer::CreateGeometryPipeline()
     pipeInfo.colorFormats       = { m_Swapchain.GetFormat() };
     pipeInfo.depthFormat        = VK_FORMAT_D32_SFLOAT;
     pipeInfo.extent             = m_Swapchain.GetExtent();
-    pipeInfo.layouts            = { m_ActiveScene->GetCamera().GetCameraLayout(), m_ActiveScene->GetSceneMembers()[0]->GetMesh().GetTexture().GetLayout() };
+    pipeInfo.layouts            = { m_ActiveScene->GetCamera().GetCameraLayout(), m_ActiveScene->GetSceneMembers()[0]->GetMesh()->m_SubMeshes[0].GetMaterial()->GetLayout() };
     pipeInfo.pushConstants      = { cameraPushConstant };
 
     m_GeometryPipeline = std::make_unique<Pipeline>(m_Context, pipeInfo);
@@ -173,7 +174,7 @@ void Renderer::GeometryPass()
 
     m_GeometryPipeline->BeginRender(m_CommandBuffers[m_FrameIndex], renderInfo);
 
-    m_ActiveScene->GetCamera().Bind(m_CommandBuffers[m_FrameIndex], m_GeometryPipeline->GetLayout(), m_FrameIndex, 0U);
+    m_GeometryPipeline->BindDescriptorSet(m_ActiveScene->GetCamera().GetDescriptorSet(m_FrameIndex), 0U);
 
     static auto startTime = std::chrono::high_resolution_clock::now();
     auto currentTime = std::chrono::high_resolution_clock::now();
@@ -181,14 +182,18 @@ void Renderer::GeometryPass()
 
     for(const auto& sceneMember : m_ActiveScene->GetSceneMembers())
     {
-        sceneMember->Rotate(0.0f, 0.0f, time * glm::radians(90.0f)).Translate(std::sin(time * 2), std::cos(time * 2), 0.0f);
+        sceneMember->Rotate(0.0f, time * glm::radians(90.0f), 0.0f).Scale(1.0f, 1.0f, 1.0f)
+                    .Translate(0.0f, 0.0f, -40.0f);
         sceneMember->UpdateModelMatrix();
-        sceneMember->GetMesh().GetTexture().BindDescriptorSet(m_CommandBuffers[m_FrameIndex], m_GeometryPipeline->GetLayout(), 1U);
 
-        m_GeometryPipeline->PushConstant(VK_SHADER_STAGE_VERTEX_BIT, 0U, sizeof(glm::mat4), &sceneMember->GetModelMatrix());
-        m_GeometryPipeline->BindVertexBuffer(sceneMember->GetMesh().GetVertexBuffer());
-        m_GeometryPipeline->BindIndexBuffer(sceneMember->GetMesh().GetIndexBuffer());
-        m_GeometryPipeline->DrawIndexed(sceneMember->GetMesh().GetIndexBuffer().GetIndicesCount());
+        for(const auto& submesh : sceneMember->GetMesh()->m_SubMeshes)
+        {
+            m_GeometryPipeline->PushConstant(VK_SHADER_STAGE_VERTEX_BIT, 0U, sizeof(glm::mat4), &sceneMember->GetModelMatrix());
+            m_GeometryPipeline->BindDescriptorSet(submesh.GetMaterial()->GetDescriptorSet(), 1U);
+            m_GeometryPipeline->BindVertexBuffer(submesh.GetVertexBuffer());
+            m_GeometryPipeline->BindIndexBuffer(submesh.GetIndexBuffer());
+            m_GeometryPipeline->DrawIndexed(submesh.GetIndexBuffer().GetIndicesCount());
+        }
     }
 
     m_GeometryPipeline->EndRender();

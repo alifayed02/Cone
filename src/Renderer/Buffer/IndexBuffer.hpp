@@ -7,8 +7,10 @@ class Context;
 class IndexBuffer
 {
 public:
-    IndexBuffer(Context* context, const std::vector<uint16_t>& indices);
+    IndexBuffer(Context* context, const std::vector<uint32_t>& indices);
     ~IndexBuffer() = default;
+
+    IndexBuffer(IndexBuffer&& otherBuffer) = default;
 
     IndexBuffer(const IndexBuffer& otherIndexBuffer) = delete;
     IndexBuffer& operator=(const IndexBuffer& otherIndexBuffer) = delete;
