@@ -8,12 +8,14 @@ add_executable(${PROJECT_NAME} src/Main.cpp src/Core/Cone.cpp src/Core/Cone.hpp 
 
 #target_precompile_headers(${PROJECT_NAME} PRIVATE src/Core/CnPch.hpp)
 
-include_directories(src src/Vendor src/Vendor/glm src/Vendor/VulkanMemoryAllocator/include)
+include_directories(src src/Vendor src/Vendor/glm)
+include_directories(SYSTEM "src/Vendor/VulkanMemoryAllocator/include")
 
-#target_compile_options(Cone PRIVATE
-#        $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
-#        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic>
-#        )
+target_compile_options(Cone PRIVATE
+        $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
+        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Werror -Wextra -Wpedantic>
+        )
+#set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "-Wall -Werror -Wextra -Wpedantic")
 
 # Volk
 if (WIN32)

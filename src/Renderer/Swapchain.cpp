@@ -16,7 +16,7 @@ void Swapchain::Init()
     vkb::SwapchainBuilder swapchainBuilder{m_Context->GetPhysicalDevice(), m_Context->GetLogicalDevice(), m_Context->GetSurface()};
     vkb::Swapchain vkbSwapchain = swapchainBuilder
             .set_desired_min_image_count(support.capabilities.minImageCount + 1)
-            .set_desired_format({ .format=VK_FORMAT_B8G8R8A8_UNORM, .colorSpace=VK_COLOR_SPACE_SRGB_NONLINEAR_KHR })
+            .set_desired_format({ .format=VK_FORMAT_B8G8R8A8_SRGB, .colorSpace=VK_COLOR_SPACE_SRGB_NONLINEAR_KHR })
             .set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR)
             .set_desired_extent(m_Context->GetSurfaceExtent().width, m_Context->GetSurfaceExtent().height)
             .build()

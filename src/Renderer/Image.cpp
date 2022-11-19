@@ -6,20 +6,24 @@
 
 Image::Image(Context* context, const ImageInfo& imageInfo)
     :   m_Context{context}, m_Image{}, m_ImageView{},
-        m_ImageLayout{imageInfo.initialLayout}, m_ImageFormat{imageInfo.format},
+        m_ImageLayout{VK_IMAGE_LAYOUT_UNDEFINED}, m_ImageFormat{imageInfo.format},
         m_ImageDimension{imageInfo.dimension}, m_UsageFlags{imageInfo.usageFlags},
         m_AspectFlags{imageInfo.aspectFlags}, m_Allocation{}, m_AllocationInfo{}
 {
     CreateImage();
     CreateImageView();
+    ChangeLayout(imageInfo.desiredLayout);
 }
 
-void Image::ChangeLayout(VkImageLayout newLayout)
+void Image::ChangeLayout(VkImageLayout newLayout, VkPipelineStageFlags sourceFlags)
 {
-    assert(m_ImageLayout != newLayout && "Error: Old Layout Is The Same As New Layout!");
+    if(m_ImageLayout == newLayout)
+    {
+        return;
+    }
 
     VkCommandBuffer commandBuffer = m_Context->BeginSingleTimeCommands(Context::CommandType::GRAPHICS);
-    Utilities::ChangeLayout(commandBuffer, m_ImageLayout, newLayout, m_Image, m_AspectFlags);
+    Utilities::ChangeLayout(commandBuffer, m_ImageLayout, newLayout, m_Image, m_AspectFlags, sourceFlags);
     m_Context->EndSingleTimeCommands(Context::CommandType::GRAPHICS, commandBuffer);
 
     m_ImageLayout = newLayout;

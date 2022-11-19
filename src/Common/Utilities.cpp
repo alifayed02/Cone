@@ -3,7 +3,7 @@
 
 namespace Utilities
 {
-    void ChangeLayout(VkCommandBuffer commandBuffer, VkImageLayout oldLayout, VkImageLayout newLayout, VkImage image, VkImageAspectFlags aspectFlags)
+    void ChangeLayout(VkCommandBuffer commandBuffer, VkImageLayout oldLayout, VkImageLayout newLayout, VkImage image, VkImageAspectFlags aspectFlags, VkPipelineStageFlags sourceStageFlags)
     {
         VkImageMemoryBarrier barrier{};
         barrier.sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -37,6 +37,10 @@ namespace Utilities
         {
             barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
             sourceStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        } else if(oldLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+        {
+            barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+            sourceStage = sourceStageFlags;
         }
         else {
             throw std::invalid_argument("Error: This layout transition is unsupported!");

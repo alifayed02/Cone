@@ -15,6 +15,10 @@ public:
         std::vector<VkFormat>   colorFormats;
         VkFormat                depthFormat;
         VkExtent2D              extent;
+        VkCullModeFlags         cullMode;
+        VkBool32                depthTest;
+        VkBool32                depthWrite;
+        VkBool32                vertexBindings;
 
         std::vector<VkDescriptorSetLayout>  layouts;
         std::vector<VkPushConstantRange>    pushConstants;
@@ -29,9 +33,9 @@ public:
     };
     struct RenderInfo
     {
-        std::vector<Attachment> colorAttachments;
-        Attachment              depthAttachment;
-        VkExtent2D              extent;
+        std::vector<Attachment>     colorAttachments;
+        Attachment                  depthAttachment;
+        VkExtent2D                  extent;
     };
 public:
     Pipeline(Context* context, const PipelineInfo& info);
@@ -42,6 +46,7 @@ public:
 public:
     void BeginRender(VkCommandBuffer commandBuffer, const RenderInfo& renderInfo);
     void EndRender();
+    void Draw(uint32_t vertexCount);
     void DrawIndexed(uint32_t indexCount);
     void BindVertexBuffer(const VertexBuffer& vb);
     void BindIndexBuffer(const IndexBuffer& ib);
@@ -57,4 +62,5 @@ private:
     VkPipeline          m_Pipeline;
     VkPipelineLayout    m_PipelineLayout;
     VkCommandBuffer     m_CurrentCommandBuffer;
+    VkBool32            m_DepthEnabled;
 };

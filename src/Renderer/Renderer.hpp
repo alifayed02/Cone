@@ -3,7 +3,6 @@
 #include "Swapchain.hpp"
 #include "Pipeline.hpp"
 #include "Framebuffer.hpp"
-
 #include "Buffer/VertexBuffer.hpp"
 #include "Buffer/IndexBuffer.hpp"
 
@@ -27,12 +26,15 @@ private:
     void Init();
     void CreateCommandBuffers();
     void CreateSyncResources();
-    void CreateGeometryPipeline();
     void CreateGeometryPassResources();
+    void CreateGeometryPipeline();
+    void CreateLightingPassResources();
+    void CreateLightingPipeline();
 private:
     void BeginFrame();
     void EndFrame();
     void GeometryPass();
+    void LightingPass();
 private:
     Context*                                                    m_Context;
     Scene*                                                      m_ActiveScene;
@@ -45,6 +47,12 @@ private:
     size_t                                                      m_FrameIndex;
 private:
     // Geometry Pass Resources
-    std::unique_ptr<Pipeline>       m_GeometryPipeline;
-    std::unique_ptr<Image>          m_GeometryDepthImage;
+    std::unique_ptr<Pipeline>                                               m_GeometryPipeline;
+    std::array<std::unique_ptr<Framebuffer>, Swapchain::FRAMES_IN_FLIGHT>   m_GeometryBuffer;
+private:
+    // Lighting Pass Resources
+    std::unique_ptr<Pipeline>                                   m_LightingPipeline;
+    VkDescriptorPool                                            m_GBufferDescriptorPool;
+    VkDescriptorSetLayout                                       m_GBufferDescriptorSetLayout;
+    std::array<VkDescriptorSet, Swapchain::FRAMES_IN_FLIGHT>    m_GBufferDescriptorSets;
 };

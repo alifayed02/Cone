@@ -12,6 +12,6 @@ Scene::Scene(Context* context)
 
 SceneMember* Scene::AddSceneMember(Mesh* mesh)
 {
-    m_SceneMembers.emplace_back(std::make_unique<SceneMember>(mesh));
-    return m_SceneMembers.back().get();
+    m_SceneMembers.emplace_back(mesh);
+    return &m_SceneMembers.back();
 }

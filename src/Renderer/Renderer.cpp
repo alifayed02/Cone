@@ -11,9 +11,9 @@
 
 Renderer::Renderer(Context* context, Scene* scene)
     :   m_Context{context}, m_ActiveScene{scene}, m_Swapchain{context},
-        m_CommandBuffers{}, m_InFlightFences{},
-        m_ImageAvailableSems{}, m_PresentSems{},
+        m_CommandBuffers{}, m_InFlightFences{}, m_ImageAvailableSems{}, m_PresentSems{},
         m_ImageIndex{}, m_FrameIndex{}
+
 {
     Init();
     m_ActiveScene->GetCamera().SetExtent(m_Swapchain.GetExtent());
@@ -23,8 +23,10 @@ void Renderer::Init()
 {
     CreateCommandBuffers();
     CreateSyncResources();
-    CreateGeometryPipeline();
     CreateGeometryPassResources();
+    CreateGeometryPipeline();
+    CreateLightingPassResources();
+    CreateLightingPipeline();
 }
 
 void Renderer::CreateCommandBuffers()
@@ -57,12 +59,38 @@ void Renderer::CreateSyncResources()
     }
 }
 
-/*
- *  One Pass, Forward Render
- */
+void Renderer::CreateGeometryPassResources()
+{
+    // Create GBuffer
+    for(size_t i = 0; i < m_GeometryBuffer.max_size(); i++)
+    {
+        std::vector<Framebuffer::AttachmentInfo> gBufferAttachments;
+        gBufferAttachments.resize(3);
+
+        // Albedo Attachment
+        gBufferAttachments[0].format        = m_Swapchain.GetFormat();
+        gBufferAttachments[0].layout        = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        gBufferAttachments[0].usageFlags    = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+        gBufferAttachments[0].aspectFlags   = VK_IMAGE_ASPECT_COLOR_BIT;
+
+        // Position Attachment
+        gBufferAttachments[1].format        = VK_FORMAT_R16G16B16A16_SFLOAT;
+        gBufferAttachments[1].layout        = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        gBufferAttachments[1].usageFlags    = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+        gBufferAttachments[1].aspectFlags   = VK_IMAGE_ASPECT_COLOR_BIT;
+
+        // Depth Attachment
+        gBufferAttachments[2].format        = VK_FORMAT_D32_SFLOAT;
+        gBufferAttachments[2].layout        = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+        gBufferAttachments[2].usageFlags    = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+        gBufferAttachments[2].aspectFlags   = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+        m_GeometryBuffer[i] = std::make_unique<Framebuffer>(m_Context, m_Swapchain.GetExtent(), gBufferAttachments);
+    }
+}
+
 void Renderer::CreateGeometryPipeline()
 {
-    // REFACTOR
     VkPushConstantRange cameraPushConstant{};
     cameraPushConstant.stageFlags    = VK_SHADER_STAGE_VERTEX_BIT;
     cameraPushConstant.offset        = 0;
@@ -71,26 +99,103 @@ void Renderer::CreateGeometryPipeline()
     Pipeline::PipelineInfo pipeInfo{};
     pipeInfo.vertexPath         = "/Shaders/GeometryVert.spv";
     pipeInfo.fragmentPath       = "/Shaders/GeometryFrag.spv";
-    pipeInfo.colorFormats       = { m_Swapchain.GetFormat() };
-    pipeInfo.depthFormat        = VK_FORMAT_D32_SFLOAT;
+    pipeInfo.colorFormats       = { m_GeometryBuffer[0]->GetAttachments()[0].GetImageFormat(),  m_GeometryBuffer[0]->GetAttachments()[1].GetImageFormat() };
+    pipeInfo.depthFormat        = m_GeometryBuffer[0]->GetAttachments()[2].GetImageFormat();
     pipeInfo.extent             = m_Swapchain.GetExtent();
-    pipeInfo.layouts            = { m_ActiveScene->GetCamera().GetCameraLayout(), m_ActiveScene->GetSceneMembers()[0]->GetMesh()->m_SubMeshes[0].GetMaterial()->GetLayout() };
+    pipeInfo.cullMode           = VK_CULL_MODE_BACK_BIT;
+    pipeInfo.depthTest          = VK_TRUE;
+    pipeInfo.depthWrite         = VK_TRUE;
+    pipeInfo.vertexBindings     = VK_TRUE;
+    pipeInfo.layouts            = { m_ActiveScene->GetCamera().GetCameraLayout(), m_ActiveScene->GetSceneMembers()[0].GetMesh()->m_SubMeshes[0].GetMaterial()->GetLayout() };
     pipeInfo.pushConstants      = { cameraPushConstant };
 
     m_GeometryPipeline = std::make_unique<Pipeline>(m_Context, pipeInfo);
 }
 
-void Renderer::CreateGeometryPassResources()
+void Renderer::CreateLightingPassResources()
 {
-    Image::ImageInfo depthImage{};
-    depthImage.format           = VK_FORMAT_D32_SFLOAT;
-    depthImage.initialLayout    = VK_IMAGE_LAYOUT_UNDEFINED;
-    depthImage.dimension        = m_Swapchain.GetExtent();
-    depthImage.usageFlags       = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    depthImage.aspectFlags      = VK_IMAGE_ASPECT_DEPTH_BIT;
+    // GBuffer as input sampled from textures
+    VkDescriptorPoolSize poolSize{};
+    poolSize.type               = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    poolSize.descriptorCount    = (m_GeometryBuffer[0]->GetAttachments().size() - 1) * Swapchain::FRAMES_IN_FLIGHT;
 
-    m_GeometryDepthImage = std::make_unique<Image>(m_Context, depthImage);
-    m_GeometryDepthImage->ChangeLayout(VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+    VkDescriptorPoolCreateInfo poolCreateInfo{};
+    poolCreateInfo.sType            = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    poolCreateInfo.maxSets          = Swapchain::FRAMES_IN_FLIGHT;
+    poolCreateInfo.poolSizeCount    = 1;
+    poolCreateInfo.pPoolSizes       = &poolSize;
+
+    VK_CHECK(vkCreateDescriptorPool(m_Context->GetLogicalDevice(), &poolCreateInfo, nullptr, &m_GBufferDescriptorPool))
+
+    std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
+
+    for(size_t i = 0; i < (m_GeometryBuffer[0]->GetAttachments().size() - 1); i++)
+    {
+        // 0 = Albedo. 1 = Position
+        VkDescriptorSetLayoutBinding binding{};
+        binding.binding           = i;
+        binding.descriptorType    = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        binding.descriptorCount   = 1;
+        binding.stageFlags        = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        layoutBindings.push_back(binding);
+    }
+
+    VkDescriptorSetLayoutCreateInfo layoutInfo{};
+    layoutInfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutInfo.bindingCount = layoutBindings.size();
+    layoutInfo.pBindings    = layoutBindings.data();
+
+    vkCreateDescriptorSetLayout(m_Context->GetLogicalDevice(), &layoutInfo, nullptr, &m_GBufferDescriptorSetLayout);
+    std::vector<VkDescriptorSetLayout> setLayouts(Swapchain::FRAMES_IN_FLIGHT, m_GBufferDescriptorSetLayout);
+
+    VkDescriptorSetAllocateInfo setAllocateInfo{};
+    setAllocateInfo.sType               = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    setAllocateInfo.descriptorPool      = m_GBufferDescriptorPool;
+    setAllocateInfo.descriptorSetCount  = setLayouts.size();
+    setAllocateInfo.pSetLayouts         = setLayouts.data();
+
+    VK_CHECK(vkAllocateDescriptorSets(m_Context->GetLogicalDevice(), &setAllocateInfo, m_GBufferDescriptorSets.data()))
+
+    for(size_t i = 0; i < m_GBufferDescriptorSets.size(); i++)
+    {
+        for(size_t j = 0; j < layoutBindings.size(); j++)
+        {
+            // 0 = Albedo. 1 = Position
+            VkDescriptorImageInfo imageInfo{};
+            imageInfo.sampler       = m_GeometryBuffer[i]->GetSampler();
+            imageInfo.imageView     = m_GeometryBuffer[i]->GetAttachments()[j].GetImageView();
+            imageInfo.imageLayout   = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+            VkWriteDescriptorSet writeSet{};
+            writeSet.sType              = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writeSet.dstSet             = m_GBufferDescriptorSets[i];
+            writeSet.dstBinding         = j;
+            writeSet.dstArrayElement    = 0;
+            writeSet.descriptorCount    = 1;
+            writeSet.descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            writeSet.pImageInfo         = &imageInfo;
+
+            vkUpdateDescriptorSets(m_Context->GetLogicalDevice(), 1, &writeSet, 0, nullptr);
+        }
+    }
+}
+
+void Renderer::CreateLightingPipeline()
+{
+    // Full screen quad for now. Bounding spheres planned.
+    Pipeline::PipelineInfo pipeInfo{};
+    pipeInfo.vertexPath         = "/Shaders/FullScreenQuadVert.spv";
+    pipeInfo.fragmentPath       = "/Shaders/LightingFrag.spv";
+    pipeInfo.colorFormats       = { m_Swapchain.GetFormat() };
+    pipeInfo.extent             = m_Swapchain.GetExtent();
+    pipeInfo.cullMode           = VK_CULL_MODE_FRONT_BIT;
+    pipeInfo.depthTest          = VK_FALSE;
+    pipeInfo.depthWrite         = VK_FALSE;
+    pipeInfo.vertexBindings     = VK_FALSE;
+    pipeInfo.layouts            = { m_GBufferDescriptorSetLayout };
+
+    m_LightingPipeline = std::make_unique<Pipeline>(m_Context, pipeInfo);
 }
 
 void Renderer::BeginFrame()
@@ -143,32 +248,41 @@ void Renderer::EndFrame()
     m_FrameIndex = (m_FrameIndex + 1) % Swapchain::FRAMES_IN_FLIGHT;
 }
 
-/*
- * One Pass, Forward Render
- * Rendering directly into swapchain images
- *
- * Deferred renderer will render into separate buffers later
- */
 void Renderer::GeometryPass()
 {
-    m_Swapchain.ChangeLayout(m_ImageIndex, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, m_CommandBuffers[m_FrameIndex]);
+    // Change GBuffer Image Layouts to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+    for(size_t i = 0; i < m_GeometryBuffer[m_FrameIndex]->GetAttachments().size() - 1; i++)
+    {
+        m_GeometryBuffer[m_FrameIndex]->GetAttachments()[i].ChangeLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+    }
 
-    Pipeline::Attachment colorAttachment{};
-    colorAttachment.imageView   = m_Swapchain.GetImageViews()[m_ImageIndex];
-    colorAttachment.imageLayout = m_Swapchain.GetImageLayouts()[m_ImageIndex];
-    colorAttachment.loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    colorAttachment.storeOp     = VK_ATTACHMENT_STORE_OP_STORE;
-    colorAttachment.clearValue  = {};
+    std::vector<Pipeline::Attachment> colorAttachments;
+
+    Pipeline::Attachment albedoAttachment{};
+    albedoAttachment.imageView      = m_GeometryBuffer[m_FrameIndex]->GetAttachments()[0].GetImageView();
+    albedoAttachment.imageLayout    = m_GeometryBuffer[m_FrameIndex]->GetAttachments()[0].GetImageLayout();
+    albedoAttachment.loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    albedoAttachment.storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
+    albedoAttachment.clearValue     = {};
+    colorAttachments.push_back(albedoAttachment);
+
+    Pipeline::Attachment positionAttachment{};
+    positionAttachment.imageView      = m_GeometryBuffer[m_FrameIndex]->GetAttachments()[1].GetImageView();
+    positionAttachment.imageLayout    = m_GeometryBuffer[m_FrameIndex]->GetAttachments()[1].GetImageLayout();
+    positionAttachment.loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    positionAttachment.storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
+    positionAttachment.clearValue     = {};
+    colorAttachments.push_back(positionAttachment);
 
     Pipeline::Attachment depthAttachment{};
-    depthAttachment.imageView   = m_GeometryDepthImage->GetImageView();
-    depthAttachment.imageLayout = m_GeometryDepthImage->GetImageLayout();
+    depthAttachment.imageView   = m_GeometryBuffer[m_FrameIndex]->GetAttachments()[2].GetImageView();
+    depthAttachment.imageLayout = m_GeometryBuffer[m_FrameIndex]->GetAttachments()[2].GetImageLayout();
     depthAttachment.loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR;
     depthAttachment.storeOp     = VK_ATTACHMENT_STORE_OP_STORE;
     depthAttachment.clearValue  = {.depthStencil{1.0f, 0}};
 
     Pipeline::RenderInfo renderInfo{};
-    renderInfo.colorAttachments = { colorAttachment };
+    renderInfo.colorAttachments = colorAttachments;
     renderInfo.depthAttachment  = depthAttachment;
     renderInfo.extent           = m_Swapchain.GetExtent();
 
@@ -176,19 +290,11 @@ void Renderer::GeometryPass()
 
     m_GeometryPipeline->BindDescriptorSet(m_ActiveScene->GetCamera().GetDescriptorSet(m_FrameIndex), 0U);
 
-    static auto startTime = std::chrono::high_resolution_clock::now();
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
     for(const auto& sceneMember : m_ActiveScene->GetSceneMembers())
     {
-        sceneMember->Scale(0.01f, 0.01f, 0.01f)
-                    .Translate(0.0f, 0.0f, -1.0f);
-        sceneMember->UpdateModelMatrix();
-
-        for(const auto& submesh : sceneMember->GetMesh()->m_SubMeshes)
+        for(const auto& submesh : sceneMember.GetMesh()->m_SubMeshes)
         {
-            m_GeometryPipeline->PushConstant(VK_SHADER_STAGE_VERTEX_BIT, 0U, sizeof(glm::mat4), &sceneMember->GetModelMatrix());
+            m_GeometryPipeline->PushConstant(VK_SHADER_STAGE_VERTEX_BIT, 0U, sizeof(glm::mat4), &sceneMember.GetModelMatrix());
             m_GeometryPipeline->BindDescriptorSet(submesh.GetMaterial()->GetDescriptorSet(), 1U);
             m_GeometryPipeline->BindVertexBuffer(submesh.GetVertexBuffer());
             m_GeometryPipeline->BindIndexBuffer(submesh.GetIndexBuffer());
@@ -199,10 +305,39 @@ void Renderer::GeometryPass()
     m_GeometryPipeline->EndRender();
 }
 
+void Renderer::LightingPass()
+{
+    // Change Swapchain Image Layout
+    m_Swapchain.ChangeLayout(m_ImageIndex, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, m_CommandBuffers[m_FrameIndex]);
+
+    // Change GBuffer Image Layouts to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    for(size_t i = 0; i < m_GeometryBuffer[m_FrameIndex]->GetAttachments().size() - 1; i++)
+    {
+        m_GeometryBuffer[m_FrameIndex]->GetAttachments()[i].ChangeLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    }
+
+    Pipeline::Attachment colorAttachment{};
+    colorAttachment.imageView   = m_Swapchain.GetImageViews()[m_ImageIndex];
+    colorAttachment.imageLayout = m_Swapchain.GetImageLayouts()[m_ImageIndex];
+    colorAttachment.loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    colorAttachment.storeOp     = VK_ATTACHMENT_STORE_OP_STORE;
+    colorAttachment.clearValue  = {};
+
+    Pipeline::RenderInfo renderInfo{};
+    renderInfo.colorAttachments = { colorAttachment };
+    renderInfo.extent           = m_Swapchain.GetExtent();
+
+    m_LightingPipeline->BeginRender(m_CommandBuffers[m_FrameIndex], renderInfo);
+    m_LightingPipeline->BindDescriptorSet(m_GBufferDescriptorSets[m_FrameIndex], 0U);
+    m_LightingPipeline->Draw(3);
+    m_LightingPipeline->EndRender();
+}
+
 void Renderer::DrawFrame()
 {
     BeginFrame();
     GeometryPass();
+    LightingPass();
     EndFrame();
 }
 
@@ -210,6 +345,14 @@ Renderer::~Renderer()
 {
     vkDeviceWaitIdle(m_Context->GetLogicalDevice());
 
+    if(m_GBufferDescriptorSetLayout)
+    {
+        vkDestroyDescriptorSetLayout(m_Context->GetLogicalDevice(), m_GBufferDescriptorSetLayout, nullptr);
+    }
+    if(m_GBufferDescriptorPool)
+    {
+        vkDestroyDescriptorPool(m_Context->GetLogicalDevice(), m_GBufferDescriptorPool, nullptr);
+    }
     if(!m_CommandBuffers.empty())
     {
         vkFreeCommandBuffers(m_Context->GetLogicalDevice(), m_Context->GetCommandPool(), m_CommandBuffers.size(), m_CommandBuffers.data());

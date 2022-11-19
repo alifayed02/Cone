@@ -13,6 +13,7 @@
 #include <span>
 #include <array>
 #include <unordered_map>
+#include <optional>
 
 #include <iostream>
 #include <fstream>

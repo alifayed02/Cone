@@ -10,10 +10,9 @@
 #include "glfw/glfw3.h"
 
 Camera::Camera(Context* context)
-    :   m_Context{context}, m_CameraExtent{}, m_DescriptorPool{},
-        m_DescriptorSetLayout{}, m_DescriptorSets{}, m_BufferObjects{},
-        m_Position{0.0f}, m_Target{0.0f, 0.0f, -1.0f}, m_Up{0.0f, 1.0f, 0.0f},
-        m_Speed{0.1f}, m_AngleHorizontal{-90.0f}, m_AngleVertical{0.0f},
+    :   m_Context{context}, m_CameraExtent{}, m_DescriptorPool{}, m_DescriptorSetLayout{}, m_DescriptorSets{},
+        m_BufferObjects{}, m_Position{0.0f}, m_Target{0.0f, 0.0f, -1.0f}, m_Up{0.0f, 1.0f, 0.0f},
+        m_Speed{0.05f}, m_AngleHorizontal{-90.0f}, m_AngleVertical{0.0f},
         m_MousePosX{(double)m_CameraExtent.width/2}, m_MousePosY{(double)m_CameraExtent.height/2}
 {
     CreateDescriptorPool();
@@ -26,7 +25,7 @@ void Camera::CreateDescriptorPool()
     // Pool will hold {2} Uniform Buffers
     VkDescriptorPoolSize poolSize{};
     poolSize.type               = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSize.descriptorCount    = Swapchain::FRAMES_IN_FLIGHT;
+    poolSize.descriptorCount    = Swapchain::FRAMES_IN_FLIGHT; // numUniformBuffersPerSet * numSets = 1 * 2 = 2
 
     // Pool will hold 2 DescriptorSets
     VkDescriptorPoolCreateInfo poolCreateInfo{};
@@ -100,11 +99,6 @@ void Camera::CreateDescriptorBuffers()
 void Camera::WriteBuffer(const uint32_t frameIndex)
 {
     m_Buffers[frameIndex]->Map(&m_BufferObjects[frameIndex], m_Buffers[frameIndex]->GetSize());
-}
-
-void Camera::Bind(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, const uint32_t frameIndex, const uint32_t setIndex) const
-{
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, setIndex, 1U, &m_DescriptorSets[frameIndex], 0U, nullptr);
 }
 
 void Camera::SetExtent(const VkExtent2D extent)

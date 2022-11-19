@@ -38,14 +38,13 @@ void Texture::CreateImage(const std::string& path)
 
     Image::ImageInfo texImageInfo{};
     texImageInfo.format         = VK_FORMAT_R8G8B8A8_UNORM;
-    texImageInfo.initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
+    texImageInfo.desiredLayout  = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
     texImageInfo.dimension      = {(uint32_t)m_TextureInfo.width, (uint32_t)m_TextureInfo.height};
     texImageInfo.usageFlags     = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
     texImageInfo.aspectFlags    = VK_IMAGE_ASPECT_COLOR_BIT;
 
     m_Image = std::make_unique<Image>(m_Context, texImageInfo);
 
-    m_Image->ChangeLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     m_Image->CopyDataToImage(m_StagingBuffer.get(), {(uint32_t)m_TextureInfo.width, (uint32_t)m_TextureInfo.height, 1U});
     m_Image->ChangeLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }

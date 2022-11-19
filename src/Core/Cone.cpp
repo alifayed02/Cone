@@ -5,7 +5,7 @@
 
 void Cone::Init()
 {
-    VkExtent2D extent = {1280, 720};
+    VkExtent2D extent = {1920, 1080};
     m_Window        = std::make_unique<Window>(extent, "Cone Engine");
     m_Context       = std::make_unique<Context>(m_Window.get());
     m_AssetManager  = std::make_unique<AssetManager>(m_Context.get());
@@ -49,5 +49,7 @@ void Cone::CreateMainScene()
     m_MainScene = std::make_unique<Scene>(m_Context.get());
 
     m_AssetManager->LoadMesh("Sponza", "/Assets/Models/Sponza/Sponza.gltf");
-    m_MainScene->AddSceneMember(m_AssetManager->GetMesh("Sponza"));
+
+    SceneMember* sponza = m_MainScene->AddSceneMember(m_AssetManager->GetMesh("Sponza"));
+    sponza->Scale(0.01f, 0.01f, 0.01f).Translate(0.0f, -0.3f, -1.0f).UpdateModelMatrix();
 }

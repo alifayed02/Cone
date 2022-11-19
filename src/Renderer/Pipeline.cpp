@@ -4,7 +4,7 @@
 #include "Buffer/Vertex.hpp"
 
 Pipeline::Pipeline(Context* context, const PipelineInfo& info)
-    :   m_Context(context), m_CurrentCommandBuffer{}
+    :   m_Context(context), m_CurrentCommandBuffer{}, m_DepthEnabled{info.depthFormat != VK_FORMAT_UNDEFINED}
 {
     auto vertexCode     = ReadShaderCode(info.vertexPath);
     auto fragmentCode   = ReadShaderCode(info.fragmentPath);
@@ -31,10 +31,14 @@ Pipeline::Pipeline(Context* context, const PipelineInfo& info)
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.vertexBindingDescriptionCount   = 1;
-    vertexInputInfo.pVertexBindingDescriptions      = &vertexBindingDesc;
-    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexAttribDesc.size());
-    vertexInputInfo.pVertexAttributeDescriptions    = vertexAttribDesc.data();
+
+    if(info.vertexBindings)
+    {
+        vertexInputInfo.vertexBindingDescriptionCount   = 1;
+        vertexInputInfo.pVertexBindingDescriptions      = &vertexBindingDesc;
+        vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexAttribDesc.size());
+        vertexInputInfo.pVertexAttributeDescriptions    = vertexAttribDesc.data();
+    }
 
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo{};
     inputAssemblyInfo.sType                     = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -66,7 +70,7 @@ Pipeline::Pipeline(Context* context, const PipelineInfo& info)
     rasterizationInfo.rasterizerDiscardEnable   = VK_FALSE;
     rasterizationInfo.polygonMode               = VK_POLYGON_MODE_FILL;
     rasterizationInfo.lineWidth                 = 1.0f;
-    rasterizationInfo.cullMode                  = VK_CULL_MODE_BACK_BIT;
+    rasterizationInfo.cullMode                  = info.cullMode;
     rasterizationInfo.frontFace                 = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     rasterizationInfo.depthBiasEnable           = VK_FALSE;
 
@@ -77,8 +81,8 @@ Pipeline::Pipeline(Context* context, const PipelineInfo& info)
 
     VkPipelineDepthStencilStateCreateInfo depthStencilInfo{};
     depthStencilInfo.sType                  = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    depthStencilInfo.depthTestEnable        = VK_TRUE;
-    depthStencilInfo.depthWriteEnable       = VK_TRUE;
+    depthStencilInfo.depthTestEnable        = info.depthTest;
+    depthStencilInfo.depthWriteEnable       = info.depthWrite;
     depthStencilInfo.depthCompareOp         = VK_COMPARE_OP_LESS;
     depthStencilInfo.depthBoundsTestEnable  = VK_FALSE;
     depthStencilInfo.minDepthBounds         = 0.0f; // Optional
@@ -97,12 +101,18 @@ Pipeline::Pipeline(Context* context, const PipelineInfo& info)
     colorBlendAttachment.dstAlphaBlendFactor    = VK_BLEND_FACTOR_ZERO;
     colorBlendAttachment.alphaBlendOp           = VK_BLEND_OP_ADD;
 
+    std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachments;
+    for(size_t i = 0; i < info.colorFormats.size(); i++)
+    {
+        colorBlendAttachments.push_back(colorBlendAttachment);
+    }
+
     VkPipelineColorBlendStateCreateInfo colorBlendInfo{};
     colorBlendInfo.sType                = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
     colorBlendInfo.logicOpEnable        = VK_FALSE;
     colorBlendInfo.logicOp              = VK_LOGIC_OP_COPY;   // Optional
-    colorBlendInfo.attachmentCount      = 1;
-    colorBlendInfo.pAttachments         = &colorBlendAttachment;
+    colorBlendInfo.attachmentCount      = colorBlendAttachments.size();
+    colorBlendInfo.pAttachments         = colorBlendAttachments.data();
     colorBlendInfo.blendConstants[0]    = 0.0f;     // Optional
     colorBlendInfo.blendConstants[1]    = 0.0f;     // Optional
     colorBlendInfo.blendConstants[2]    = 0.0f;     // Optional
@@ -173,12 +183,15 @@ void Pipeline::BeginRender(VkCommandBuffer commandBuffer, const RenderInfo& rend
     }
 
     VkRenderingAttachmentInfo depthRenderingAttachmentInfo{};
-    depthRenderingAttachmentInfo.sType          = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-    depthRenderingAttachmentInfo.imageView      = renderInfo.depthAttachment.imageView;
-    depthRenderingAttachmentInfo.imageLayout    = renderInfo.depthAttachment.imageLayout;
-    depthRenderingAttachmentInfo.loadOp         = renderInfo.depthAttachment.loadOp;
-    depthRenderingAttachmentInfo.storeOp        = renderInfo.depthAttachment.storeOp;
-    depthRenderingAttachmentInfo.clearValue     = renderInfo.depthAttachment.clearValue;
+    if(m_DepthEnabled)
+    {
+        depthRenderingAttachmentInfo.sType          = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+        depthRenderingAttachmentInfo.imageView      = renderInfo.depthAttachment.imageView;
+        depthRenderingAttachmentInfo.imageLayout    = renderInfo.depthAttachment.imageLayout;
+        depthRenderingAttachmentInfo.loadOp         = renderInfo.depthAttachment.loadOp;
+        depthRenderingAttachmentInfo.storeOp        = renderInfo.depthAttachment.storeOp;
+        depthRenderingAttachmentInfo.clearValue     = renderInfo.depthAttachment.clearValue;
+    }
 
     VkRenderingInfo dynRenderingInfo{};
     dynRenderingInfo.sType                  = VK_STRUCTURE_TYPE_RENDERING_INFO;
@@ -186,7 +199,7 @@ void Pipeline::BeginRender(VkCommandBuffer commandBuffer, const RenderInfo& rend
     dynRenderingInfo.layerCount             = 1U;
     dynRenderingInfo.colorAttachmentCount   = static_cast<uint32_t>(renderAttachments.size());
     dynRenderingInfo.pColorAttachments      = renderAttachments.data();
-    dynRenderingInfo.pDepthAttachment       = &depthRenderingAttachmentInfo;
+    dynRenderingInfo.pDepthAttachment       = m_DepthEnabled ? &depthRenderingAttachmentInfo : nullptr;
 
     vkCmdBeginRenderingKHR(m_CurrentCommandBuffer, &dynRenderingInfo);
 
@@ -198,16 +211,21 @@ void Pipeline::BeginRender(VkCommandBuffer commandBuffer, const RenderInfo& rend
     VkRect2D scissor{};
     scissor.extent = renderInfo.extent;
 
-    vkCmdSetViewport(commandBuffer, 0U, 1U, &viewport);
-    vkCmdSetScissor(commandBuffer, 0U, 1U, &scissor);
+    vkCmdBindPipeline(m_CurrentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline);
 
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline);
+    vkCmdSetViewport(m_CurrentCommandBuffer, 0U, 1U, &viewport);
+    vkCmdSetScissor(m_CurrentCommandBuffer, 0U, 1U, &scissor);
 }
 
 void Pipeline::EndRender()
 {
     vkCmdEndRenderingKHR(m_CurrentCommandBuffer);
     m_CurrentCommandBuffer = VK_NULL_HANDLE;
+}
+
+void Pipeline::Draw(uint32_t vertexCount)
+{
+    vkCmdDraw(m_CurrentCommandBuffer, vertexCount, 1, 0, 0);
 }
 
 void Pipeline::DrawIndexed(const uint32_t indexCount)
