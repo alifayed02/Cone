@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Image.hpp"
+#include "Pipeline.hpp"
 
 class Context;
 

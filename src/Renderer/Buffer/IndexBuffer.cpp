@@ -2,7 +2,7 @@
 #include "IndexBuffer.hpp"
 
 IndexBuffer::IndexBuffer(Context* context, const std::vector<uint32_t>& indices)
-    :   m_Context{context}, m_Buffer{context, {indices.size() * sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VMA_MEMORY_USAGE_AUTO, 0}},
+    :   m_Buffer{context, {indices.size() * sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VMA_MEMORY_USAGE_AUTO, 0}},
         m_IndicesCount{static_cast<uint32_t>(indices.size())}
 {
     Buffer::BufferInfo stagingBufferInfo{};

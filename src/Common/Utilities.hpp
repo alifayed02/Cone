@@ -13,5 +13,15 @@
 
  namespace Utilities
  {
-     void ChangeLayout(VkCommandBuffer commandBuffer, VkImageLayout oldLayout, VkImageLayout newLayout, VkImage image, VkImageAspectFlags aspectFlags, VkPipelineStageFlags sourceStageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+    struct LayoutTransitionInfo
+    {
+        VkImageLayout           oldLayout;
+        VkImageLayout           newLayout;
+        VkImage                 image;
+        uint32_t                mipLevels;
+        VkImageAspectFlags      aspectFlags;
+        VkPipelineStageFlags    sourceStageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    };
+
+    void ChangeLayout(VkCommandBuffer commandBuffer, const LayoutTransitionInfo& layoutTransitionInfo);
  }

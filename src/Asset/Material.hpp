@@ -10,6 +10,7 @@ public:
     {
         std::string name;
         Texture*    albedo;
+        Texture*    normal;
     };
 public:
     Material(Context* context, const MaterialInfo& matInfo);
@@ -25,9 +26,12 @@ private:
     void CreateDescriptorSet();
     void SetSamplerData();
 private:
+    const uint32_t materialCount = 2;
+private:
     Context*                m_Context;
-    Texture*                m_AlbedoTexture;
     std::string             m_Name;
+    Texture*                m_AlbedoTexture;
+    Texture*                m_NormalTexture;
 private:
     VkDescriptorSet         m_DescriptorSet;
     VkDescriptorPool        m_DescriptorPool;

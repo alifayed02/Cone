@@ -27,6 +27,7 @@ private:
     void LoadIndices(cgltf_primitive* primitive, std::vector<uint32_t>& indices);
     Material* LoadMaterial(std::string_view meshName, cgltf_primitive* primitive);
     Texture* LoadTexture(std::string_view name, std::string_view path);
+    Texture* LoadDefaultTexture();
 private:
     Context*                                                    m_Context;
     std::unordered_map<std::string, std::unique_ptr<Mesh>>      m_Meshes;

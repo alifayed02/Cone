@@ -6,7 +6,7 @@
 #include "glm/glm.hpp"
 
 class Context;
-class GLFWwindow;
+struct GLFWwindow;
 
 class Camera
 {

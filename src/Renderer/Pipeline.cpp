@@ -4,7 +4,8 @@
 #include "Buffer/Vertex.hpp"
 
 Pipeline::Pipeline(Context* context, const PipelineInfo& info)
-    :   m_Context(context), m_CurrentCommandBuffer{}, m_DepthEnabled{info.depthFormat != VK_FORMAT_UNDEFINED}
+    :   m_Context(context), m_Pipeline{}, m_PipelineLayout{}, m_CurrentCommandBuffer{},
+        m_DepthEnabled{info.depthFormat != VK_FORMAT_UNDEFINED}
 {
     auto vertexCode     = ReadShaderCode(info.vertexPath);
     auto fragmentCode   = ReadShaderCode(info.fragmentPath);
@@ -30,7 +31,7 @@ Pipeline::Pipeline(Context* context, const PipelineInfo& info)
     auto vertexAttribDesc   = Vertex::GetAttributeDescriptions();
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-    vertexInputInfo.sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
     if(info.vertexBindings)
     {

@@ -5,8 +5,8 @@
 #include "Texture.hpp"
 
 Material::Material(Context* context, const Material::MaterialInfo& matInfo)
-        :   m_Context{context}, m_AlbedoTexture{matInfo.albedo}, m_Name{matInfo.name},
-            m_DescriptorSet{}, m_DescriptorPool{}, m_DescriptorSetLayout{}
+        :   m_Context{context}, m_Name{matInfo.name}, m_AlbedoTexture{matInfo.albedo},
+            m_NormalTexture{matInfo.normal}, m_DescriptorSet{}, m_DescriptorPool{}, m_DescriptorSetLayout{}
 {
     CreateDescriptorPool();
     CreateDescriptorSet();
@@ -18,7 +18,7 @@ void Material::CreateDescriptorPool()
     // Pool will hold {1} Sampler
     VkDescriptorPoolSize poolSize{};
     poolSize.type               = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSize.descriptorCount    = 1;
+    poolSize.descriptorCount    = materialCount;
 
     // Pool will hold 1 Descriptor Set
     VkDescriptorPoolCreateInfo poolCreateInfo{};
@@ -32,16 +32,22 @@ void Material::CreateDescriptorPool()
 
 void Material::CreateDescriptorSet()
 {
-    VkDescriptorSetLayoutBinding layoutBinding{};
-    layoutBinding.binding               = 0;
-    layoutBinding.descriptorType        = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    layoutBinding.descriptorCount       = 1;
-    layoutBinding.stageFlags            = VK_SHADER_STAGE_FRAGMENT_BIT;
+    std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
+    for(size_t i = 0; i < materialCount; i++)
+    {
+        VkDescriptorSetLayoutBinding layoutBinding{};
+        layoutBinding.binding               = i;
+        layoutBinding.descriptorType        = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        layoutBinding.descriptorCount       = 1;
+        layoutBinding.stageFlags            = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        layoutBindings.push_back(layoutBinding);
+    }
 
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = 1;
-    layoutInfo.pBindings    = &layoutBinding;
+    layoutInfo.bindingCount = layoutBindings.size();
+    layoutInfo.pBindings    = layoutBindings.data();
 
     vkCreateDescriptorSetLayout(m_Context->GetLogicalDevice(), &layoutInfo, nullptr, &m_DescriptorSetLayout);
 
@@ -61,16 +67,31 @@ void Material::SetSamplerData()
     albedoImageInfo.imageView   = m_AlbedoTexture->GetImage()->GetImageView();
     albedoImageInfo.imageLayout = m_AlbedoTexture->GetImage()->GetImageLayout();
 
-    VkWriteDescriptorSet writeSet{};
-    writeSet.sType              = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    writeSet.dstSet             = m_DescriptorSet;
-    writeSet.dstBinding         = 0;
-    writeSet.dstArrayElement    = 0;
-    writeSet.descriptorCount    = 1;
-    writeSet.descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    writeSet.pImageInfo         = &albedoImageInfo;
+    VkDescriptorImageInfo normalImageInfo{};
+    normalImageInfo.sampler     = m_NormalTexture->GetSampler();
+    normalImageInfo.imageView   = m_NormalTexture->GetImage()->GetImageView();
+    normalImageInfo.imageLayout = m_NormalTexture->GetImage()->GetImageLayout();
 
-    vkUpdateDescriptorSets(m_Context->GetLogicalDevice(), 1, &writeSet, 0, nullptr);
+    VkWriteDescriptorSet albedoWriteSet{};
+    albedoWriteSet.sType              = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    albedoWriteSet.dstSet             = m_DescriptorSet;
+    albedoWriteSet.dstBinding         = 0;
+    albedoWriteSet.dstArrayElement    = 0;
+    albedoWriteSet.descriptorCount    = 1;
+    albedoWriteSet.descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    albedoWriteSet.pImageInfo         = &albedoImageInfo;
+
+    VkWriteDescriptorSet normalWriteSet{};
+    normalWriteSet.sType              = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    normalWriteSet.dstSet             = m_DescriptorSet;
+    normalWriteSet.dstBinding         = 1;
+    normalWriteSet.dstArrayElement    = 0;
+    normalWriteSet.descriptorCount    = 1;
+    normalWriteSet.descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    normalWriteSet.pImageInfo         = &normalImageInfo;
+
+    vkUpdateDescriptorSets(m_Context->GetLogicalDevice(), 1, &albedoWriteSet, 0, nullptr);
+    vkUpdateDescriptorSets(m_Context->GetLogicalDevice(), 1, &normalWriteSet, 0, nullptr);
 }
 
 Material::~Material()

@@ -23,4 +23,6 @@
 #include <functional>
 #include <exception>
 
+#include <cmath>
+
 #include <Common/Utilities.hpp>

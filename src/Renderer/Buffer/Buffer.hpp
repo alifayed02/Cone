@@ -9,6 +9,7 @@ public:
     {
         VkDeviceSize                size;
         VkBufferUsageFlags          usageFlags;
+
         VmaMemoryUsage              vmaMemoryUsage;
         VmaAllocationCreateFlags    vmaAllocFlags;
     };
