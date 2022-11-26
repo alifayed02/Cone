@@ -36,6 +36,7 @@ private:
     void RotateVector(float angle, const glm::vec3& axis, glm::vec3& rotationVec);
     void UpdateCameraUVN();
     glm::mat4 CreateCameraMatrix();
+    void PrintPosition();
 private:
     Context*                                                            m_Context;
     VkExtent2D                                                          m_CameraExtent;

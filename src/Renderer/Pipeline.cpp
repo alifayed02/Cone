@@ -49,8 +49,8 @@ Pipeline::Pipeline(Context* context, const PipelineInfo& info)
     VkViewport viewport{};
     viewport.x          = 0.0f;
     viewport.y          = 0.0f;
-    viewport.width      = (float) info.extent.width;
-    viewport.height     = (float) info.extent.height;
+    viewport.width      = static_cast<float>(info.extent.width);
+    viewport.height     = static_cast<float>(info.extent.height);
     viewport.minDepth   = 0.0f;
     viewport.maxDepth   = 1.0f;
 
@@ -94,9 +94,9 @@ Pipeline::Pipeline(Context* context, const PipelineInfo& info)
 
     VkPipelineColorBlendAttachmentState colorBlendAttachment{};
     colorBlendAttachment.colorWriteMask         = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    colorBlendAttachment.blendEnable            = VK_FALSE;
-    colorBlendAttachment.srcColorBlendFactor    = VK_BLEND_FACTOR_ONE;
-    colorBlendAttachment.dstColorBlendFactor    = VK_BLEND_FACTOR_ZERO;
+    colorBlendAttachment.blendEnable            = info.enableBlend;
+    colorBlendAttachment.srcColorBlendFactor    = VK_BLEND_FACTOR_SRC_ALPHA;
+    colorBlendAttachment.dstColorBlendFactor    = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
     colorBlendAttachment.colorBlendOp           = VK_BLEND_OP_ADD;
     colorBlendAttachment.srcAlphaBlendFactor    = VK_BLEND_FACTOR_ONE;
     colorBlendAttachment.dstAlphaBlendFactor    = VK_BLEND_FACTOR_ZERO;

@@ -12,6 +12,12 @@ layout(location = 2) out vec4 normalAttachment;
 layout(set = 1, binding = 0) uniform sampler2D albedoTexSampler;
 layout(set = 1, binding = 1) uniform sampler2D normalTexSampler;
 
+layout(push_constant) uniform MaterialObject
+{
+    layout(offset = 64)
+    vec4 albedoColor;
+} matObject;
+
 vec4 TangentToWorld()
 {
     vec3 normal = texture(normalTexSampler, fragTexCoord).rgb;
@@ -24,7 +30,7 @@ vec4 TangentToWorld()
 
 void main()
 {
-    albedoAttachment    = texture(albedoTexSampler, fragTexCoord);
+    albedoAttachment    = texture(albedoTexSampler, fragTexCoord) * matObject.albedoColor;
     positionAttachment  = vec4(fragPos, 1.0);
     normalAttachment    = normalize(TangentToWorld());
 }

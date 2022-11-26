@@ -710,25 +710,25 @@
     ],
     "images": [
         {
-            "uri": "./chair_fabric_normal.png"
+            "uri": "chair_fabric_normal.png"
         },
         {
-            "uri": "./chair_occlusion.png"
+            "uri": "chair_occlusion.png"
         },
         {
-            "uri": "./chair_fabric_albedo.png"
+            "uri": "chair_fabric_albedo.png"
         },
         {
-            "uri": "./chair_wood_albedo.png"
+            "uri": "chair_wood_albedo.png"
         },
         {
-            "uri": "./chair_woodbrown_roughnessmetallic.png"
+            "uri": "chair_woodbrown_roughnessmetallic.png"
         },
         {
-            "uri": "./chair_label.png"
+            "uri": "chair_label.png"
         },
         {
-            "uri": "./chair_woodblack_roughnessmetallic.png"
+            "uri": "chair_woodblack_roughnessmetallic.png"
         }
     ],
     "samplers": [

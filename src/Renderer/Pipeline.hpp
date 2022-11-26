@@ -19,6 +19,7 @@ public:
         VkBool32                depthTest;
         VkBool32                depthWrite;
         VkBool32                vertexBindings;
+        VkBool32                enableBlend;
 
         std::vector<VkDescriptorSetLayout>  layouts;
         std::vector<VkPushConstantRange>    pushConstants;
@@ -52,8 +53,6 @@ public:
     void BindIndexBuffer(const IndexBuffer& ib);
     void BindDescriptorSet(VkDescriptorSet descriptorSet, uint32_t index);
     void PushConstant(VkShaderStageFlags shaderStageFlags, uint32_t offset, uint32_t size, const void* data);
-public:
-    inline VkPipelineLayout GetLayout() const { return m_PipelineLayout; }
 private:
     std::vector<char> ReadShaderCode(std::string_view path);
     VkShaderModule CreateShaderModule(std::span<char> shaderCode);

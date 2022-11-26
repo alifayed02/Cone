@@ -11,6 +11,8 @@ public:
     Mesh(const Mesh& otherMesh) = delete;
     Mesh& operator=(const Mesh& otherMesh) = delete;
 public:
+    const std::string& GetName() const { return m_Name; }
+public:
     std::vector<SubMesh>    m_SubMeshes;
 private:
     std::string             m_Name;

@@ -6,7 +6,8 @@
 
 Material::Material(Context* context, const Material::MaterialInfo& matInfo)
         :   m_Context{context}, m_Name{matInfo.name}, m_AlbedoTexture{matInfo.albedo},
-            m_NormalTexture{matInfo.normal}, m_DescriptorSet{}, m_DescriptorPool{}, m_DescriptorSetLayout{}
+            m_NormalTexture{matInfo.normal}, m_MaterialObject{matInfo.materialObject},
+            m_DescriptorSet{}, m_DescriptorPool{}, m_DescriptorSetLayout{}
 {
     CreateDescriptorPool();
     CreateDescriptorSet();
@@ -18,7 +19,7 @@ void Material::CreateDescriptorPool()
     // Pool will hold {1} Sampler
     VkDescriptorPoolSize poolSize{};
     poolSize.type               = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSize.descriptorCount    = materialCount;
+    poolSize.descriptorCount    = textureCount;
 
     // Pool will hold 1 Descriptor Set
     VkDescriptorPoolCreateInfo poolCreateInfo{};
@@ -33,7 +34,7 @@ void Material::CreateDescriptorPool()
 void Material::CreateDescriptorSet()
 {
     std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
-    for(size_t i = 0; i < materialCount; i++)
+    for(size_t i = 0; i < textureCount; i++)
     {
         VkDescriptorSetLayoutBinding layoutBinding{};
         layoutBinding.binding               = i;

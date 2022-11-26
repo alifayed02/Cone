@@ -163,6 +163,8 @@ Material* AssetManager::LoadMaterial(std::string_view meshName, cgltf_primitive*
     Texture* albedoTexture = nullptr;
     Texture* normalTexture = nullptr;
 
+    Material::MaterialObject matObject{};
+
     if(primitive->material->pbr_metallic_roughness.base_color_texture.texture == nullptr)
     {
         albedoTexture = LoadDefaultTexture();
@@ -171,6 +173,12 @@ Material* AssetManager::LoadMaterial(std::string_view meshName, cgltf_primitive*
         std::string albedoName = primitive->material->pbr_metallic_roughness.base_color_texture.texture->image->uri;
         std::string albedoPath = fullPath + albedoName;
         albedoTexture = LoadTexture(albedoName, albedoPath);
+
+        cgltf_float* baseColor = primitive->material->pbr_metallic_roughness.base_color_factor;
+        if(baseColor != nullptr)
+        {
+            matObject.albedoColor = glm::vec4(baseColor[0], baseColor[1], baseColor[2], baseColor[3]);
+        }
     }
 
     if(primitive->material->normal_texture.texture == nullptr)
@@ -185,9 +193,10 @@ Material* AssetManager::LoadMaterial(std::string_view meshName, cgltf_primitive*
 
     // Create Material
     Material::MaterialInfo matInfo{};
-    matInfo.name    = materialName;
-    matInfo.albedo  = albedoTexture;
-    matInfo.normal  = normalTexture;
+    matInfo.name            = materialName;
+    matInfo.albedo          = albedoTexture;
+    matInfo.normal          = normalTexture;
+    matInfo.materialObject  = matObject;
 
     m_Materials[matInfo.name] = std::make_unique<Material>(m_Context, matInfo);
 

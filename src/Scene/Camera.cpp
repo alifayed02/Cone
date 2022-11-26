@@ -149,6 +149,8 @@ void Camera::ProcessKeyboardInputs(GLFWwindow* window)
     {
         m_Position -= m_Speed * glm::vec3(0.0f, 1.0f, 0.0f);
     }
+
+//    PrintPosition();
 }
 
 void Camera::ProcessMouseMovements(GLFWwindow* window)
@@ -235,6 +237,11 @@ void Camera::UpdateCameraUVN()
 
     m_Up = glm::cross(m_Target, u);
     glm::normalize(m_Up);
+}
+
+void Camera::PrintPosition()
+{
+    std::cout << "(" << m_Position.x << ", " << m_Position.y << ", " << m_Position.z << ")\n";
 }
 
 void Camera::Update(const uint32_t frameIndex)
