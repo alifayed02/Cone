@@ -130,72 +130,101 @@ void Renderer::CreateGeometryPipeline()
     m_GeometryPipeline = std::make_unique<Pipeline>(m_Context, pipeInfo);
 }
 
-void Renderer::CreateLightingPassResources()
+void Renderer::CreateLightObjects()
 {
-    // GBuffer as input sampled from textures
-    VkDescriptorPoolSize texturePoolSize{};
-    texturePoolSize.type               = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    texturePoolSize.descriptorCount    = (m_GeometryBuffer[0]->GetAttachments().size() - 1) * Swapchain::FRAMES_IN_FLIGHT;
+    Lights::LightBufferObject lbo{};
 
-    VkDescriptorPoolCreateInfo poolCreateInfo{};
-    poolCreateInfo.sType            = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolCreateInfo.maxSets          = Swapchain::FRAMES_IN_FLIGHT;
-    poolCreateInfo.poolSizeCount    = 1;
-    poolCreateInfo.pPoolSizes       = &texturePoolSize;
-
-    VK_CHECK(vkCreateDescriptorPool(m_Context->GetLogicalDevice(), &poolCreateInfo, nullptr, &m_GBufferDescriptorPool))
-
-    std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
-
-    for(size_t i = 0; i < (m_GeometryBuffer[0]->GetAttachments().size() - 1); i++)
+    for(size_t i = 0; i < m_ActiveScene->GetPointLights().size(); i++)
     {
-        // 0 = Albedo. 1 = Position
-        VkDescriptorSetLayoutBinding binding{};
-        binding.binding           = i;
-        binding.descriptorType    = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        binding.descriptorCount   = 1;
-        binding.stageFlags        = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-        layoutBindings.push_back(binding);
+        lbo.pointlights[i] = m_ActiveScene->GetPointLights()[i];
+        lbo.numPointLights++;
     }
 
-    VkDescriptorSetLayoutCreateInfo layoutInfo{};
-    layoutInfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = layoutBindings.size();
-    layoutInfo.pBindings    = layoutBindings.data();
-
-    vkCreateDescriptorSetLayout(m_Context->GetLogicalDevice(), &layoutInfo, nullptr, &m_GBufferDescriptorSetLayout);
-    std::vector<VkDescriptorSetLayout> setLayouts(Swapchain::FRAMES_IN_FLIGHT, m_GBufferDescriptorSetLayout);
-
-    VkDescriptorSetAllocateInfo setAllocateInfo{};
-    setAllocateInfo.sType               = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    setAllocateInfo.descriptorPool      = m_GBufferDescriptorPool;
-    setAllocateInfo.descriptorSetCount  = setLayouts.size();
-    setAllocateInfo.pSetLayouts         = setLayouts.data();
-
-    VK_CHECK(vkAllocateDescriptorSets(m_Context->GetLogicalDevice(), &setAllocateInfo, m_GBufferDescriptorSets.data()))
-
-    for(size_t i = 0; i < m_GBufferDescriptorSets.size(); i++)
+    for(size_t i = 0; i < m_LightsObjects.max_size(); i++)
     {
-        for(size_t j = 0; j < layoutBindings.size(); j++)
-        {
-            // 0 = Albedo. 1 = Position. 2 = Normals
-            VkDescriptorImageInfo imageInfo{};
-            imageInfo.sampler       = m_GeometryBuffer[i]->GetSampler();
-            imageInfo.imageView     = m_GeometryBuffer[i]->GetAttachments()[j].GetImageView();
-            imageInfo.imageLayout   = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        m_LightsObjects[i] = lbo;
+    }
+}
 
-            VkWriteDescriptorSet writeSet{};
-            writeSet.sType              = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            writeSet.dstSet             = m_GBufferDescriptorSets[i];
-            writeSet.dstBinding         = j;
-            writeSet.dstArrayElement    = 0;
-            writeSet.descriptorCount    = 1;
-            writeSet.descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            writeSet.pImageInfo         = &imageInfo;
+void Renderer::CreateLightBuffers()
+{
+    for(size_t i = 0; i < m_LightsBuffers.max_size(); i++)
+    {
+        Buffer::BufferInfo bufferInfo{};
+        bufferInfo.size = sizeof(Lights::LightBufferObject);
+        bufferInfo.usageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+        bufferInfo.vmaMemoryUsage = VMA_MEMORY_USAGE_AUTO;
+        bufferInfo.vmaAllocFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-            vkUpdateDescriptorSets(m_Context->GetLogicalDevice(), 1, &writeSet, 0, nullptr);
-        }
+        m_LightsBuffers[i] = std::make_unique<Buffer>(m_Context, bufferInfo);
+        m_LightsBuffers[i]->Map(&m_LightsObjects[i], sizeof(Lights::LightBufferObject));
+    }
+}
+
+void Renderer::CreateLightingPassResources()
+{
+    CreateLightObjects();
+    CreateLightBuffers();
+
+    for(size_t i = 0; i < static_cast<uint32_t>(Swapchain::FRAMES_IN_FLIGHT); i++)
+    {
+        // Albedo
+        VkDescriptorImageInfo albedoDescriptorInfo{};
+        albedoDescriptorInfo.sampler       = m_GeometryBuffer[i]->GetSampler();
+        albedoDescriptorInfo.imageView     = m_GeometryBuffer[i]->GetAttachments()[0].GetImageView();
+        albedoDescriptorInfo.imageLayout   = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+        DescriptorSet::BindingInfo albedoSamplerBinding{};
+        albedoSamplerBinding.type       = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        albedoSamplerBinding.binding    = 0;
+        albedoSamplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        albedoSamplerBinding.imageInfo  = &albedoDescriptorInfo;
+
+        // Position
+        VkDescriptorImageInfo positionDescriptorInfo{};
+        positionDescriptorInfo.sampler       = m_GeometryBuffer[i]->GetSampler();
+        positionDescriptorInfo.imageView     = m_GeometryBuffer[i]->GetAttachments()[1].GetImageView();
+        positionDescriptorInfo.imageLayout   = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+        DescriptorSet::BindingInfo positionSamplerBinding{};
+        positionSamplerBinding.type       = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        positionSamplerBinding.binding    = 1;
+        positionSamplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        positionSamplerBinding.imageInfo  = &positionDescriptorInfo;
+
+        // Normal
+        VkDescriptorImageInfo normalDescriptorInfo{};
+        normalDescriptorInfo.sampler       = m_GeometryBuffer[i]->GetSampler();
+        normalDescriptorInfo.imageView     = m_GeometryBuffer[i]->GetAttachments()[2].GetImageView();
+        normalDescriptorInfo.imageLayout   = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+        DescriptorSet::BindingInfo normalSamplerBinding{};
+        normalSamplerBinding.type       = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        normalSamplerBinding.binding    = 2;
+        normalSamplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        normalSamplerBinding.imageInfo  = &normalDescriptorInfo;
+
+        // Lights
+        VkDescriptorBufferInfo lightBufferInfo{};
+        lightBufferInfo.buffer   = m_LightsBuffers[i]->GetBuffer();
+        lightBufferInfo.offset   = 0;
+        lightBufferInfo.range    = sizeof(Lights::LightBufferObject);
+
+        DescriptorSet::BindingInfo lightBufferBinding{};
+        lightBufferBinding.type         = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        lightBufferBinding.binding      = 3;
+        lightBufferBinding.stageFlags   = VK_SHADER_STAGE_FRAGMENT_BIT;
+        lightBufferBinding.bufferInfo   = &lightBufferInfo;
+
+        std::vector<DescriptorSet::BindingInfo> bindings =
+                {
+                    albedoSamplerBinding,
+                    positionSamplerBinding,
+                    normalSamplerBinding,
+                    lightBufferBinding
+                };
+
+        m_NewGBufferDescriptorSets[i] = std::make_unique<DescriptorSet>(m_Context, bindings);
     }
 }
 
@@ -212,7 +241,7 @@ void Renderer::CreateLightingPipeline()
     pipeInfo.depthWrite         = VK_FALSE;
     pipeInfo.vertexBindings     = VK_FALSE;
     pipeInfo.enableBlend        = VK_FALSE;
-    pipeInfo.layouts            = { m_GBufferDescriptorSetLayout };
+    pipeInfo.layouts            = { m_NewGBufferDescriptorSets[0]->GetDescriptorSetLayout() };
 
     m_LightingPipeline = std::make_unique<Pipeline>(m_Context, pipeInfo);
 }
@@ -305,7 +334,7 @@ void Renderer::LightingPass()
     renderInfo.extent           = m_Swapchain.GetExtent();
 
     m_LightingPipeline->BeginRender(m_CommandBuffers[m_FrameIndex], renderInfo);
-    m_LightingPipeline->BindDescriptorSet(m_GBufferDescriptorSets[m_FrameIndex], 0U);
+    m_LightingPipeline->BindDescriptorSet(m_NewGBufferDescriptorSets[m_FrameIndex]->GetDescriptorSet(), 0U);
     m_LightingPipeline->Draw(3);
     m_LightingPipeline->EndRender();
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Renderer/Swapchain.hpp"
+#include "Renderer/DescriptorSet.hpp"
 #include "Renderer/Buffer/Buffer.hpp"
 
 #include "glm/glm.hpp"
@@ -19,7 +20,7 @@ public:
     };
 public:
     explicit Camera(Context* context);
-    ~Camera();
+    ~Camera() = default;
 public:
     void WriteBuffer(uint32_t frameIndex);
     void SetExtent(VkExtent2D extent);
@@ -27,24 +28,21 @@ public:
     void ProcessMouseMovements(GLFWwindow* window);
     void Update(uint32_t frameIndex);
 public:
-    inline VkDescriptorSetLayout GetCameraLayout() const { return m_DescriptorSetLayout; }
-    inline VkDescriptorSet GetDescriptorSet(const uint32_t frameIndex) const { return m_DescriptorSets[frameIndex]; }
+    inline VkDescriptorSetLayout GetCameraLayout() const { return m_DescriptorSets[0]->GetDescriptorSetLayout(); }
+    inline VkDescriptorSet GetDescriptorSet(const uint32_t frameIndex) const { return m_DescriptorSets[frameIndex]->GetDescriptorSet(); }
 private:
-    void CreateDescriptorPool();
-    void CreateDescriptorSet();
     void CreateDescriptorBuffers();
+    void CreateDescriptorSet();
     void RotateVector(float angle, const glm::vec3& axis, glm::vec3& rotationVec);
     void UpdateCameraUVN();
     glm::mat4 CreateCameraMatrix();
     void PrintPosition();
 private:
-    Context*                                                            m_Context;
-    VkExtent2D                                                          m_CameraExtent;
-    VkDescriptorPool                                                    m_DescriptorPool;
-    VkDescriptorSetLayout                                               m_DescriptorSetLayout;
-    std::array<VkDescriptorSet, Swapchain::FRAMES_IN_FLIGHT>            m_DescriptorSets;
-    std::array<std::unique_ptr<Buffer>, Swapchain::FRAMES_IN_FLIGHT>    m_Buffers;
-    std::array<CameraBufferObject, Swapchain::FRAMES_IN_FLIGHT>         m_BufferObjects;
+    Context*                                                                m_Context;
+    VkExtent2D                                                              m_CameraExtent;
+    std::array<std::unique_ptr<DescriptorSet>, Swapchain::FRAMES_IN_FLIGHT> m_DescriptorSets;
+    std::array<std::unique_ptr<Buffer>, Swapchain::FRAMES_IN_FLIGHT>        m_Buffers;
+    std::array<CameraBufferObject, Swapchain::FRAMES_IN_FLIGHT>             m_BufferObjects;
 private:
     glm::vec3   m_Position;
     glm::vec3   m_Target;

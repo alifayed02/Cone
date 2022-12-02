@@ -1,6 +1,12 @@
 #version 450
 
-#define POINT_LIGHTS_SIZE 10
+#define MAX_POINT_LIGHTS_SIZE 10
+
+struct PointLight
+{
+    vec3 position;
+    vec3 color;
+};
 
 layout(location = 0) in vec2 fragTexCoord;
 
@@ -10,50 +16,45 @@ layout(set = 0, binding = 0) uniform sampler2D albedoSampler;
 layout(set = 0, binding = 1) uniform sampler2D positionSampler;
 layout(set = 0, binding = 2) uniform sampler2D normalSampler;
 
-struct PointLight
+layout(set = 0, binding = 3) uniform LightBuffer
 {
-    vec3 position;
-    vec3 color;
-};
+    PointLight lights[MAX_POINT_LIGHTS_SIZE];
+    int numPointLights;
+} lbo;
 
-//layout(set = 0, binding = 3) uniform LightBuffer
-//{
-//    PointLight lights[POINT_LIGHTS_SIZE];
-//} lbo;
-
-vec4 CalculateAmbient();
-vec4 CalculateDiffuse();
+vec4 CalculatePointLight(PointLight light);
 
 void main()
 {
-    // Pos = (1.47991, 2.8, -1.58609)
-    vec3 lightPos = vec3(1.47991, 2.8, -1.58609);
+    vec4 result = vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
-    float distance    = length(lightPos - texture(positionSampler, fragTexCoord).xyz);
+    for(int i = 0; i < lbo.numPointLights; i++)
+    {
+        result += CalculatePointLight(lbo.lights[i]);
+    }
+
+    outColor = result;
+}
+
+vec4 CalculatePointLight(PointLight light)
+{
+    vec3 fragPos = texture(positionSampler, fragTexCoord).xyz;
+    vec3 lightDir = normalize(light.position - fragPos);
+    vec3 normal = normalize(texture(normalSampler, fragTexCoord)).xyz;
+
+    // Diffuse shading
+    float diff = max(dot(normal, lightDir), 0.0);
+
+    // Attenuation
+    float distance = length(light.position - fragPos);
     float attenuation = 1.0 / (1.0 + 0.09 * distance + 0.032 * (distance * distance));
 
-    vec4 baseColor  = texture(albedoSampler, fragTexCoord);
-    vec4 ambient    = CalculateAmbient() * attenuation;
-    vec4 diffuse    = CalculateDiffuse() * attenuation;
+    // Combine results
+    vec3 ambient = vec3(0.01f, 0.01f, 0.01f) * vec3(texture(albedoSampler, fragTexCoord));
+    vec3 diffuse = light.color * diff * vec3(texture(albedoSampler, fragTexCoord));
 
-    outColor = (ambient + diffuse) * baseColor;
-}
+    ambient *= attenuation;
+    diffuse *= attenuation;
 
-vec4 CalculateAmbient()
-{
-    float ambientStrength = 0.1;
-
-    return vec4(ambientStrength * vec3(1.0, 1.0, 1.0), 1.0);
-}
-
-vec4 CalculateDiffuse()
-{
-    vec3 lightPos = vec3(1.47991, 2.8, -1.58609);
-    vec3 lightColor = vec3(1.0, 1.0, 1.0);
-
-    vec3 norm = normalize(texture(normalSampler, fragTexCoord)).xyz;
-    vec3 lightDir = normalize(lightPos - texture(positionSampler, fragTexCoord).xyz);
-    float diff = max(dot(norm, lightDir), 0.0);
-
-    return vec4(diff * lightColor, 1.0);
+    return vec4((ambient + diffuse), 1.0f);
 }

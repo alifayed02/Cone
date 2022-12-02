@@ -19,4 +19,10 @@ namespace Lights
     {
 
     };
+
+    struct LightBufferObject
+    {
+        PointLight  pointlights[MAX_POINT_LIGHTS_SIZE];
+        uint32_t    numPointLights{};
+    };
 }

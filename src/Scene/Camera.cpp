@@ -10,56 +10,12 @@
 #include "glfw/glfw3.h"
 
 Camera::Camera(Context* context)
-    :   m_Context{context}, m_CameraExtent{}, m_DescriptorPool{}, m_DescriptorSetLayout{}, m_DescriptorSets{},
-        m_BufferObjects{}, m_Position{0.0f}, m_Target{0.0f, 0.0f, -1.0f}, m_Up{0.0f, 1.0f, 0.0f},
-        m_Speed{0.05f}, m_AngleHorizontal{-90.0f}, m_AngleVertical{0.0f},
+    :   m_Context{context}, m_CameraExtent{}, m_BufferObjects{}, m_Position{0.0f},
+        m_Target{0.0f, 0.0f, -1.0f}, m_Up{0.0f, 1.0f, 0.0f}, m_Speed{0.05f}, m_AngleHorizontal{-90.0f}, m_AngleVertical{0.0f},
         m_MousePosX{(double)m_CameraExtent.width/2}, m_MousePosY{(double)m_CameraExtent.height/2}
 {
-    CreateDescriptorPool();
-    CreateDescriptorSet();
     CreateDescriptorBuffers();
-}
-
-void Camera::CreateDescriptorPool()
-{
-    // Pool will hold {2} Uniform Buffers
-    VkDescriptorPoolSize poolSize{};
-    poolSize.type               = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSize.descriptorCount    = Swapchain::FRAMES_IN_FLIGHT; // numUniformBuffersPerSet * numSets = 1 * 2 = 2
-
-    // Pool will hold 2 DescriptorSets
-    VkDescriptorPoolCreateInfo poolCreateInfo{};
-    poolCreateInfo.sType            = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolCreateInfo.maxSets          = Swapchain::FRAMES_IN_FLIGHT;
-    poolCreateInfo.poolSizeCount    = 1;
-    poolCreateInfo.pPoolSizes       = &poolSize;
-
-    VK_CHECK(vkCreateDescriptorPool(m_Context->GetLogicalDevice(), &poolCreateInfo, nullptr, &m_DescriptorPool))
-}
-
-void Camera::CreateDescriptorSet()
-{
-    VkDescriptorSetLayoutBinding layoutBinding{};
-    layoutBinding.binding           = 0;
-    layoutBinding.descriptorType    = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    layoutBinding.descriptorCount   = 1;
-    layoutBinding.stageFlags        = VK_SHADER_STAGE_VERTEX_BIT;
-
-    VkDescriptorSetLayoutCreateInfo layoutInfo{};
-    layoutInfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = 1;
-    layoutInfo.pBindings    = &layoutBinding;
-
-    vkCreateDescriptorSetLayout(m_Context->GetLogicalDevice(), &layoutInfo, nullptr, &m_DescriptorSetLayout);
-    std::vector<VkDescriptorSetLayout> setLayouts(Swapchain::FRAMES_IN_FLIGHT, m_DescriptorSetLayout);
-
-    VkDescriptorSetAllocateInfo setAllocateInfo{};
-    setAllocateInfo.sType               = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    setAllocateInfo.descriptorPool      = m_DescriptorPool;
-    setAllocateInfo.descriptorSetCount  = setLayouts.size();
-    setAllocateInfo.pSetLayouts         = setLayouts.data();
-
-    VK_CHECK(vkAllocateDescriptorSets(m_Context->GetLogicalDevice(), &setAllocateInfo, m_DescriptorSets.data()))
+    CreateDescriptorSet();
 }
 
 void Camera::CreateDescriptorBuffers()
@@ -74,25 +30,27 @@ void Camera::CreateDescriptorBuffers()
 
         m_Buffers[i] = std::make_unique<Buffer>(m_Context, bufferInfo);
     }
+}
 
-    for(size_t i = 0; i < m_DescriptorSets.size(); i++)
+void Camera::CreateDescriptorSet()
+{
+    for(size_t i = 0; i < m_DescriptorSets.max_size(); i++)
     {
+        std::vector<DescriptorSet::BindingInfo> bindings;
+
         VkDescriptorBufferInfo bufferInfo{};
         bufferInfo.buffer   = m_Buffers[i]->GetBuffer();
         bufferInfo.offset   = 0;
-        bufferInfo.range    = m_Buffers[i]->GetSize();
+        bufferInfo.range    = sizeof(CameraBufferObject);
 
+        DescriptorSet::BindingInfo bindingInfo{};
+        bindingInfo.type        = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        bindingInfo.binding     = 0;
+        bindingInfo.stageFlags  = VK_SHADER_STAGE_VERTEX_BIT;
+        bindingInfo.bufferInfo  = &bufferInfo;
+        bindings.push_back(bindingInfo);
 
-        VkWriteDescriptorSet writeSet{};
-        writeSet.sType              = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        writeSet.dstSet             = m_DescriptorSets[i];
-        writeSet.dstBinding         = 0;
-        writeSet.dstArrayElement    = 0;
-        writeSet.descriptorCount    = 1;
-        writeSet.descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        writeSet.pBufferInfo        = &bufferInfo;
-
-        vkUpdateDescriptorSets(m_Context->GetLogicalDevice(), 1, &writeSet, 0, nullptr);
+        m_DescriptorSets[i] = std::make_unique<DescriptorSet>(m_Context, bindings);
     }
 }
 
@@ -249,16 +207,4 @@ void Camera::Update(const uint32_t frameIndex)
     m_BufferObjects[frameIndex].viewMatrix = CreateCameraMatrix();
     m_BufferObjects[frameIndex].viewProjectionMatrix = m_BufferObjects[frameIndex].projectionMatrix * m_BufferObjects[frameIndex].viewMatrix;
     WriteBuffer(frameIndex);
-}
-
-Camera::~Camera()
-{
-    if(m_DescriptorSetLayout)
-    {
-        vkDestroyDescriptorSetLayout(m_Context->GetLogicalDevice(), m_DescriptorSetLayout, nullptr);
-    }
-    if(m_DescriptorPool)
-    {
-        vkDestroyDescriptorPool(m_Context->GetLogicalDevice(), m_DescriptorPool, nullptr);
-    }
 }

@@ -1,5 +1,7 @@
 #pragma once
 
+#define MAX_POINT_LIGHTS_SIZE 10
+
 #define VK_NO_PROTOTYPES
 #include <volk.h>
 

@@ -30,6 +30,10 @@ SceneMember* Scene::GetSceneMember(std::string_view name)
 
 Lights::PointLight* Scene::AddPointLight(const Lights::PointLight pointLight)
 {
+    if(m_PointLights.size() >= MAX_POINT_LIGHTS_SIZE)
+    {
+        throw std::runtime_error("Error: Cannot add more point lights.");
+    }
     m_PointLights.emplace_back(pointLight);
     return &m_PointLights.back();
 }

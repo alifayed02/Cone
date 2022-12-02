@@ -22,7 +22,7 @@ public:
 public:
     SceneMember* AddSceneMember(Mesh* mesh);
     SceneMember* GetSceneMember(std::string_view name);
-    Lights::PointLight* AddPointLight(const Lights::PointLight pointLight);
+    Lights::PointLight* AddPointLight(Lights::PointLight pointLight);
 public:
     inline Camera& GetCamera() { return m_Camera; }
     inline const std::vector<SceneMember>& GetSceneMembers() const { return m_SceneMembers; }

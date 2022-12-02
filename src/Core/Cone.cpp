@@ -31,6 +31,7 @@ void Cone::Run()
         m_MainScene->GetCamera().ProcessKeyboardInputs(m_Window->GetGLFWWindow());
         m_MainScene->GetCamera().ProcessMouseMovements(m_Window->GetGLFWWindow());
         m_MainScene->GetCamera().Update(m_Renderer->GetCurrentFrame());
+
         UpdateMainScene();
 
         Draw();
@@ -53,7 +54,7 @@ void Cone::CreateMainScene()
     SceneMember* sponza = m_MainScene->AddSceneMember(m_AssetManager->GetMesh("Sponza"));
     sponza->Scale(0.01f, 0.01f, 0.01f).Translate(0.0f, -0.3f, -1.0f).UpdateModelMatrix();
 
-    m_MainScene->AddPointLight({ glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f) });
+    m_MainScene->AddPointLight({ glm::vec3(-7.66f, 1.95f, -1.32f), glm::vec3(0.4f, 0.4f, 0.4f) });
 }
 
 void Cone::UpdateMainScene()
