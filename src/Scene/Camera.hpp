@@ -1,12 +1,13 @@
 #pragma once
 
 #include "Renderer/Swapchain.hpp"
+#include "Renderer/DescriptorSet.hpp"
 #include "Renderer/Buffer/Buffer.hpp"
 
 #include "glm/glm.hpp"
 
 class Context;
-class GLFWwindow;
+struct GLFWwindow;
 
 class Camera
 {
@@ -19,32 +20,32 @@ public:
     };
 public:
     explicit Camera(Context* context);
-    ~Camera();
+    ~Camera() = default;
 public:
     void WriteBuffer(uint32_t frameIndex);
-    void Bind(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, uint32_t frameIndex, uint32_t setIndex) const;
     void SetExtent(VkExtent2D extent);
     void ProcessKeyboardInputs(GLFWwindow* window);
     void ProcessMouseMovements(GLFWwindow* window);
     void Update(uint32_t frameIndex);
+    glm::mat4 CreateCameraMatrix();
 public:
-    inline VkDescriptorSetLayout GetCameraLayout() const { return m_DescriptorSetLayout; }
-    inline VkDescriptorSet GetDescriptorSet(const uint32_t frameIndex) const { return m_DescriptorSets[frameIndex]; }
+    inline VkDescriptorSetLayout GetCameraLayout() const { return m_DescriptorSets[0]->GetDescriptorSetLayout(); }
+    inline VkDescriptorSet GetDescriptorSet(const uint32_t frameIndex) const { return m_DescriptorSets[frameIndex]->GetDescriptorSet(); }
+    inline const glm::vec3& GetPosition() const { return m_Position; }
+    inline float GetExposure() const { return m_Exposure; }
+    inline void SetExposure(float exposure) { m_Exposure = exposure; }
 private:
-    void CreateDescriptorPool();
-    void CreateDescriptorSet();
     void CreateDescriptorBuffers();
+    void CreateDescriptorSet();
     void RotateVector(float angle, const glm::vec3& axis, glm::vec3& rotationVec);
     void UpdateCameraUVN();
-    glm::mat4 CreateCameraMatrix();
+    void PrintPosition();
 private:
-    Context*                                                            m_Context;
-    VkExtent2D                                                          m_CameraExtent;
-    VkDescriptorPool                                                    m_DescriptorPool;
-    VkDescriptorSetLayout                                               m_DescriptorSetLayout;
-    std::array<VkDescriptorSet, Swapchain::FRAMES_IN_FLIGHT>            m_DescriptorSets;
-    std::array<std::unique_ptr<Buffer>, Swapchain::FRAMES_IN_FLIGHT>    m_Buffers;
-    std::array<CameraBufferObject, Swapchain::FRAMES_IN_FLIGHT>         m_BufferObjects;
+    Context*                                                                m_Context;
+    VkExtent2D                                                              m_CameraExtent;
+    std::array<std::unique_ptr<DescriptorSet>, Swapchain::FRAMES_IN_FLIGHT> m_DescriptorSets;
+    std::array<std::unique_ptr<Buffer>, Swapchain::FRAMES_IN_FLIGHT>        m_Buffers;
+    std::array<CameraBufferObject, Swapchain::FRAMES_IN_FLIGHT>             m_BufferObjects;
 private:
     glm::vec3   m_Position;
     glm::vec3   m_Target;
@@ -54,4 +55,5 @@ private:
     float       m_AngleVertical;
     double      m_MousePosX;
     double      m_MousePosY;
+    float       m_Exposure;
 };

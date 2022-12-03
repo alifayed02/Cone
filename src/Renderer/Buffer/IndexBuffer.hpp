@@ -19,7 +19,6 @@ public:
 public:
     void Bind(VkCommandBuffer commandBuffer) const;
 private:
-    Context*    m_Context;
     Buffer      m_Buffer;
     uint32_t    m_IndicesCount;
 };

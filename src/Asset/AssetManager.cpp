@@ -107,6 +107,14 @@ void AssetManager::LoadVertices(cgltf_primitive* primitive, std::vector<Vertex>&
                 cgltf_accessor_read_float(primitive->attributes[i].data, j, normal, sizeof(normal));
                 vertices[j].normal = glm::vec3(normal[0], normal[1], normal[2]);
             }
+        } else if(std::strcmp(primitive->attributes[i].name, "TANGENT") == 0)
+        {
+            for(size_t j = 0; j < vertexCount; j++)
+            {
+                cgltf_float tangent[4];
+                cgltf_accessor_read_float(primitive->attributes[i].data, j, tangent, sizeof(tangent));
+                vertices[j].tangent = glm::vec4(tangent[0], tangent[1], tangent[2], tangent[3]);
+            }
         }
         else if(std::strcmp(primitive->attributes[i].name, "TEXCOORD_0") == 0)
         {
@@ -152,28 +160,56 @@ Material* AssetManager::LoadMaterial(std::string_view meshName, cgltf_primitive*
     std::filesystem::path cwd = std::filesystem::current_path().parent_path();
     std::string fullPath = cwd.string() + "/Assets/Models/" + std::string(meshName) + "/";
 
-    // Create Albedo Texture
+    Texture* albedoTexture              = nullptr;
+    Texture* normalTexture              = nullptr;
+    Texture* metallicRoughnessTexture   = nullptr;
+
+    Material::MaterialObject matObject{};
+
     if(primitive->material->pbr_metallic_roughness.base_color_texture.texture == nullptr)
     {
-        // Load Default Albedo
-        Texture* defaultAlbedo = LoadTexture("DefaultAlbedo", cwd.string() + "Textures/White.png");
+        albedoTexture = LoadDefaultTexture();
+    } else
+    {
+        std::string albedoName = primitive->material->pbr_metallic_roughness.base_color_texture.texture->image->uri;
+        std::string albedoPath = fullPath + albedoName;
+        albedoTexture = LoadTexture(albedoName, albedoPath);
 
-        Material::MaterialInfo matInfo{};
-        matInfo.name    = materialName;
-        matInfo.albedo  = defaultAlbedo;
-        m_Materials[matInfo.name] = std::make_unique<Material>(m_Context, matInfo);
-
-        return m_Materials.at(matInfo.name).get();
+        cgltf_float* baseColor = primitive->material->pbr_metallic_roughness.base_color_factor;
+        matObject.albedoColor = glm::vec4(baseColor[0], baseColor[1], baseColor[2], baseColor[3]);
     }
 
-    std::string albedoName = primitive->material->pbr_metallic_roughness.base_color_texture.texture->image->uri;
-    std::string albedoPath = fullPath + albedoName;
-    Texture* albedoTexture = LoadTexture(albedoName, albedoPath);
+    if(primitive->material->normal_texture.texture == nullptr)
+    {
+        normalTexture = LoadDefaultTexture();
+    } else
+    {
+        std::string normalName = primitive->material->normal_texture.texture->image->uri;
+        std::string normalPath = fullPath + normalName;
+        normalTexture = LoadTexture(normalName, normalPath);
+    }
+
+    if(primitive->material->pbr_metallic_roughness.metallic_roughness_texture.texture == nullptr)
+    {
+        metallicRoughnessTexture = LoadDefaultTexture();
+    } else
+    {
+        std::string metallicRoughnessName = primitive->material->pbr_metallic_roughness.metallic_roughness_texture.texture->image->uri;
+        std::string metallicRoughnessPath = fullPath + metallicRoughnessName;
+        metallicRoughnessTexture = LoadTexture(metallicRoughnessName, metallicRoughnessPath);
+
+        matObject.metallicFactor    = primitive->material->pbr_metallic_roughness.metallic_factor;
+        matObject.roughnessFactor   = primitive->material->pbr_metallic_roughness.roughness_factor;
+    }
 
     // Create Material
     Material::MaterialInfo matInfo{};
-    matInfo.name    = materialName;
-    matInfo.albedo  = albedoTexture;
+    matInfo.name                = materialName;
+    matInfo.albedo              = albedoTexture;
+    matInfo.normal              = normalTexture;
+    matInfo.metallicRoughness   = metallicRoughnessTexture;
+    matInfo.materialObject      = matObject;
+
     m_Materials[matInfo.name] = std::make_unique<Material>(m_Context, matInfo);
 
     return m_Materials.at(matInfo.name).get();
@@ -188,6 +224,18 @@ Texture* AssetManager::LoadTexture(std::string_view name, std::string_view path)
 
     m_Textures[name.data()] = std::make_unique<Texture>(m_Context, name, path);
     return m_Textures.at(name.data()).get();
+}
+
+Texture* AssetManager::LoadDefaultTexture()
+{
+    if(!m_Textures.contains("DefaultTexture"))
+    {
+        std::filesystem::path cwd = std::filesystem::current_path().parent_path();
+        std::string fullPath = cwd.string() + "/Assets/Textures/Black.jpeg";
+        m_Textures["DefaultTexture"] = std::make_unique<Texture>(m_Context, "DefaultTexture", fullPath);
+    }
+
+    return m_Textures.at("DefaultTexture").get();
 }
 
 Mesh* AssetManager::GetMesh(std::string_view name)

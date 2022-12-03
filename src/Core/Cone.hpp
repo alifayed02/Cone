@@ -18,6 +18,7 @@ private:
     void Init();
     void Draw();
     void CreateMainScene();
+    void UpdateMainScene();
 private:
     std::unique_ptr<Window>         m_Window;
     std::unique_ptr<Context>        m_Context;

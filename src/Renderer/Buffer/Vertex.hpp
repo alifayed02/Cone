@@ -1,13 +1,12 @@
 #pragma once
 
-#include "Core/CnPch.hpp"
-
 #include "glm/glm.hpp"
 
 struct Vertex
 {
     glm::vec3 pos;
     glm::vec3 normal;
+    glm::vec4 tangent;
     glm::vec2 texCoord;
 
     static constexpr VkVertexInputBindingDescription GetBindingDescription()
@@ -19,9 +18,9 @@ struct Vertex
         };
     }
 
-    static constexpr std::array<VkVertexInputAttributeDescription, 3> GetAttributeDescriptions()
+    static constexpr std::array<VkVertexInputAttributeDescription, 4> GetAttributeDescriptions()
     {
-        return std::array<VkVertexInputAttributeDescription, 3> {
+        return std::array<VkVertexInputAttributeDescription, 4> {
                 VkVertexInputAttributeDescription
                 {
                         .location   = 0U,
@@ -38,7 +37,14 @@ struct Vertex
                 },
                 VkVertexInputAttributeDescription
                 {
-                         .location  = 2U,
+                        .location   = 2U,
+                        .binding    = 0U,
+                        .format     = VK_FORMAT_R32G32B32A32_SFLOAT,
+                        .offset     = offsetof(Vertex, tangent),
+                },
+                VkVertexInputAttributeDescription
+                {
+                         .location  = 3U,
                          .binding   = 0U,
                          .format    = VK_FORMAT_R32G32_SFLOAT,
                          .offset    = offsetof(Vertex, texCoord),
@@ -48,6 +54,6 @@ struct Vertex
 
     bool operator==(const Vertex& otherVertex) const
     {
-        return pos == otherVertex.pos && normal == otherVertex.normal && texCoord == otherVertex.texCoord;
+        return pos == otherVertex.pos && normal == otherVertex.normal && tangent == otherVertex.tangent && texCoord == otherVertex.texCoord;
     }
 };

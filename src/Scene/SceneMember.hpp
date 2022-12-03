@@ -12,6 +12,8 @@ public:
     SceneMember(Mesh* mesh);
     ~SceneMember() = default;
 
+    SceneMember(SceneMember&& otherSceneMember) = default;
+
     SceneMember(const SceneMember& otherSceneMember) = delete;
     SceneMember& operator=(const SceneMember& otherSceneMember) = delete;
 public:

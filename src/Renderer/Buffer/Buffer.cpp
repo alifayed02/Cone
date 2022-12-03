@@ -13,8 +13,8 @@ Buffer::Buffer(Context* context, const BufferInfo& bufferInfo)
     bufferCreateInfo.sharingMode    = VK_SHARING_MODE_EXCLUSIVE;
 
     VmaAllocationCreateInfo allocInfo{};
-    allocInfo.usage = bufferInfo.vmaMemoryUsage;
-    allocInfo.flags = bufferInfo.vmaAllocFlags;
+    allocInfo.usage         = bufferInfo.vmaMemoryUsage;
+    allocInfo.flags         = bufferInfo.vmaAllocFlags;
 
     vmaCreateBuffer(m_Context->GetAllocator(), &bufferCreateInfo, &allocInfo, &m_Buffer, &m_Allocation, &m_AllocInfo);
 }
@@ -29,7 +29,7 @@ void Buffer::Transfer(Buffer* dstBuffer)
     VkCommandBuffer cmdBuffer = m_Context->BeginSingleTimeCommands(Context::CommandType::TRANSFER);
 
     VkBufferCopy copyRegion{};
-    copyRegion.size = dstBuffer->m_AllocInfo.size;
+    copyRegion.size = m_AllocInfo.size;
 
     vkCmdCopyBuffer(cmdBuffer, m_Buffer, dstBuffer->m_Buffer, 1, &copyRegion);
 

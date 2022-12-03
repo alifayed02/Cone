@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Image.hpp"
+#include "Pipeline.hpp"
 
 class Context;
 
@@ -16,14 +17,18 @@ public:
     };
 public:
     Framebuffer(Context* context, VkExtent2D dimension, const std::vector<AttachmentInfo>& attachments);
-    ~Framebuffer() = default;
+    ~Framebuffer();
 
     Framebuffer(const Framebuffer& otherFramebuffer) = delete;
     Framebuffer& operator=(const Framebuffer& otherFrameBuffer) = delete;
 public:
-    inline const std::vector<Image>& GetAttachments() const { return m_Attachments; }
+    inline std::vector<Image>& GetAttachments() { return m_Attachments; }
+    inline VkSampler GetSampler() const { return m_Sampler; }
+private:
+    void CreateSampler();
 private:
     Context*            m_Context;
     VkExtent2D          m_Dimension;
     std::vector<Image>  m_Attachments;
+    VkSampler           m_Sampler;
 };

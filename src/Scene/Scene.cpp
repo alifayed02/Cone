@@ -12,6 +12,28 @@ Scene::Scene(Context* context)
 
 SceneMember* Scene::AddSceneMember(Mesh* mesh)
 {
-    m_SceneMembers.emplace_back(std::make_unique<SceneMember>(mesh));
-    return m_SceneMembers.back().get();
+    m_SceneMembers.emplace_back(mesh);
+    return &m_SceneMembers.back();
+}
+
+SceneMember* Scene::GetSceneMember(std::string_view name)
+{
+    for(auto& sceneMember : m_SceneMembers)
+    {
+        if(std::strcmp(sceneMember.GetMesh()->GetName().data(), name.data()) == 0)
+        {
+            return &sceneMember;
+        }
+    }
+    return nullptr;
+}
+
+Lights::PointLight* Scene::AddPointLight(const Lights::PointLight pointLight)
+{
+    if(m_PointLights.size() >= MAX_POINT_LIGHTS_SIZE)
+    {
+        throw std::runtime_error("Error: Cannot add more point lights.");
+    }
+    m_PointLights.emplace_back(pointLight);
+    return &m_PointLights.back();
 }
