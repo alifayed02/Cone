@@ -160,8 +160,9 @@ Material* AssetManager::LoadMaterial(std::string_view meshName, cgltf_primitive*
     std::filesystem::path cwd = std::filesystem::current_path().parent_path();
     std::string fullPath = cwd.string() + "/Assets/Models/" + std::string(meshName) + "/";
 
-    Texture* albedoTexture = nullptr;
-    Texture* normalTexture = nullptr;
+    Texture* albedoTexture              = nullptr;
+    Texture* normalTexture              = nullptr;
+    Texture* metallicRoughnessTexture   = nullptr;
 
     Material::MaterialObject matObject{};
 
@@ -175,10 +176,7 @@ Material* AssetManager::LoadMaterial(std::string_view meshName, cgltf_primitive*
         albedoTexture = LoadTexture(albedoName, albedoPath);
 
         cgltf_float* baseColor = primitive->material->pbr_metallic_roughness.base_color_factor;
-        if(baseColor != nullptr)
-        {
-            matObject.albedoColor = glm::vec4(baseColor[0], baseColor[1], baseColor[2], baseColor[3]);
-        }
+        matObject.albedoColor = glm::vec4(baseColor[0], baseColor[1], baseColor[2], baseColor[3]);
     }
 
     if(primitive->material->normal_texture.texture == nullptr)
@@ -191,12 +189,26 @@ Material* AssetManager::LoadMaterial(std::string_view meshName, cgltf_primitive*
         normalTexture = LoadTexture(normalName, normalPath);
     }
 
+    if(primitive->material->pbr_metallic_roughness.metallic_roughness_texture.texture == nullptr)
+    {
+        metallicRoughnessTexture = LoadDefaultTexture();
+    } else
+    {
+        std::string metallicRoughnessName = primitive->material->pbr_metallic_roughness.metallic_roughness_texture.texture->image->uri;
+        std::string metallicRoughnessPath = fullPath + metallicRoughnessName;
+        metallicRoughnessTexture = LoadTexture(metallicRoughnessName, metallicRoughnessPath);
+
+        matObject.metallicFactor    = primitive->material->pbr_metallic_roughness.metallic_factor;
+        matObject.roughnessFactor   = primitive->material->pbr_metallic_roughness.roughness_factor;
+    }
+
     // Create Material
     Material::MaterialInfo matInfo{};
-    matInfo.name            = materialName;
-    matInfo.albedo          = albedoTexture;
-    matInfo.normal          = normalTexture;
-    matInfo.materialObject  = matObject;
+    matInfo.name                = materialName;
+    matInfo.albedo              = albedoTexture;
+    matInfo.normal              = normalTexture;
+    matInfo.metallicRoughness   = metallicRoughnessTexture;
+    matInfo.materialObject      = matObject;
 
     m_Materials[matInfo.name] = std::make_unique<Material>(m_Context, matInfo);
 

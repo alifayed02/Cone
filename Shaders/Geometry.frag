@@ -11,11 +11,14 @@ layout(location = 2) out vec4 normalAttachment;
 
 layout(set = 1, binding = 0) uniform sampler2D albedoTexSampler;
 layout(set = 1, binding = 1) uniform sampler2D normalTexSampler;
+layout(set = 1, binding = 2) uniform sampler2D metallicRoughnessTexSampler;
 
 layout(push_constant) uniform MaterialObject
 {
     layout(offset = 64)
-    vec4 albedoColor;
+    vec4    albedoColor;
+    float   metallicFactor;
+    float   roughnessFactor;
 } matObject;
 
 vec4 TangentToWorld()
@@ -30,7 +33,11 @@ vec4 TangentToWorld()
 
 void main()
 {
-    albedoAttachment    = texture(albedoTexSampler, fragTexCoord) * matObject.albedoColor;
-    positionAttachment  = vec4(fragPos, 1.0);
+    // Metallic in A channel
+    albedoAttachment    = vec4(texture(albedoTexSampler, fragTexCoord).rgb, texture(metallicRoughnessTexSampler, fragTexCoord).b * matObject.metallicFactor);
+
+    // Roughness in A Channel
+    positionAttachment  = vec4(fragPos, texture(metallicRoughnessTexSampler, fragTexCoord).g * matObject.roughnessFactor);
+
     normalAttachment    = normalize(TangentToWorld());
 }

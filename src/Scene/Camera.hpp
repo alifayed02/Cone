@@ -27,15 +27,18 @@ public:
     void ProcessKeyboardInputs(GLFWwindow* window);
     void ProcessMouseMovements(GLFWwindow* window);
     void Update(uint32_t frameIndex);
+    glm::mat4 CreateCameraMatrix();
 public:
     inline VkDescriptorSetLayout GetCameraLayout() const { return m_DescriptorSets[0]->GetDescriptorSetLayout(); }
     inline VkDescriptorSet GetDescriptorSet(const uint32_t frameIndex) const { return m_DescriptorSets[frameIndex]->GetDescriptorSet(); }
+    inline const glm::vec3& GetPosition() const { return m_Position; }
+    inline float GetExposure() const { return m_Exposure; }
+    inline void SetExposure(float exposure) { m_Exposure = exposure; }
 private:
     void CreateDescriptorBuffers();
     void CreateDescriptorSet();
     void RotateVector(float angle, const glm::vec3& axis, glm::vec3& rotationVec);
     void UpdateCameraUVN();
-    glm::mat4 CreateCameraMatrix();
     void PrintPosition();
 private:
     Context*                                                                m_Context;
@@ -52,4 +55,5 @@ private:
     float       m_AngleVertical;
     double      m_MousePosX;
     double      m_MousePosY;
+    float       m_Exposure;
 };

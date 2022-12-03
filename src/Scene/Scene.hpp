@@ -27,6 +27,7 @@ public:
     inline Camera& GetCamera() { return m_Camera; }
     inline const std::vector<SceneMember>& GetSceneMembers() const { return m_SceneMembers; }
     inline const std::vector<Lights::PointLight>& GetPointLights() const { return m_PointLights; }
+    inline std::vector<Lights::PointLight>& GetPointLights() { return m_PointLights; }
 private:
     Context*                        m_Context;
     Camera                          m_Camera;

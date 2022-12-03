@@ -6,8 +6,8 @@
 
 Material::Material(Context* context, const Material::MaterialInfo& matInfo)
         :   m_Context{context}, m_Name{matInfo.name}, m_AlbedoTexture{matInfo.albedo},
-            m_NormalTexture{matInfo.normal}, m_MaterialObject{matInfo.materialObject},
-            m_DescriptorSet{}, m_DescriptorPool{}, m_DescriptorSetLayout{}
+            m_NormalTexture{matInfo.normal}, m_MetallicRoughness{matInfo.metallicRoughness},
+            m_MaterialObject{matInfo.materialObject}, m_DescriptorSet{}, m_DescriptorPool{}, m_DescriptorSetLayout{}
 {
     CreateDescriptorPool();
     CreateDescriptorSet();
@@ -73,6 +73,11 @@ void Material::SetSamplerData()
     normalImageInfo.imageView   = m_NormalTexture->GetImage()->GetImageView();
     normalImageInfo.imageLayout = m_NormalTexture->GetImage()->GetImageLayout();
 
+    VkDescriptorImageInfo metallicRoughnessImageInfo{};
+    metallicRoughnessImageInfo.sampler     = m_MetallicRoughness->GetSampler();
+    metallicRoughnessImageInfo.imageView   = m_MetallicRoughness->GetImage()->GetImageView();
+    metallicRoughnessImageInfo.imageLayout = m_MetallicRoughness->GetImage()->GetImageLayout();
+
     VkWriteDescriptorSet albedoWriteSet{};
     albedoWriteSet.sType              = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     albedoWriteSet.dstSet             = m_DescriptorSet;
@@ -91,8 +96,21 @@ void Material::SetSamplerData()
     normalWriteSet.descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     normalWriteSet.pImageInfo         = &normalImageInfo;
 
-    vkUpdateDescriptorSets(m_Context->GetLogicalDevice(), 1, &albedoWriteSet, 0, nullptr);
-    vkUpdateDescriptorSets(m_Context->GetLogicalDevice(), 1, &normalWriteSet, 0, nullptr);
+    VkWriteDescriptorSet metallicRoughnessWriteSet{};
+    metallicRoughnessWriteSet.sType              = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    metallicRoughnessWriteSet.dstSet             = m_DescriptorSet;
+    metallicRoughnessWriteSet.dstBinding         = 2;
+    metallicRoughnessWriteSet.dstArrayElement    = 0;
+    metallicRoughnessWriteSet.descriptorCount    = 1;
+    metallicRoughnessWriteSet.descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    metallicRoughnessWriteSet.pImageInfo         = &metallicRoughnessImageInfo;
+
+    std::vector<VkWriteDescriptorSet> writes(3);
+    writes[0] = albedoWriteSet;
+    writes[1] = normalWriteSet;
+    writes[2] = metallicRoughnessWriteSet;
+
+    vkUpdateDescriptorSets(m_Context->GetLogicalDevice(), writes.size(), writes.data(), 0, nullptr);
 }
 
 Material::~Material()

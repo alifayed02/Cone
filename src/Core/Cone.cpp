@@ -54,7 +54,9 @@ void Cone::CreateMainScene()
     SceneMember* sponza = m_MainScene->AddSceneMember(m_AssetManager->GetMesh("Sponza"));
     sponza->Scale(0.01f, 0.01f, 0.01f).Translate(0.0f, -0.3f, -1.0f).UpdateModelMatrix();
 
-    m_MainScene->AddPointLight({ glm::vec3(-7.66f, 1.95f, -1.32f), glm::vec3(0.4f, 0.4f, 0.4f) });
+    m_MainScene->GetCamera().SetExposure(1.0f);
+
+    m_MainScene->AddPointLight({ glm::vec3(-7.66f, 1.95f, -1.32f), glm::vec3(0.6f, 0.6f, 0.6f), 10.0f });
 }
 
 void Cone::UpdateMainScene()

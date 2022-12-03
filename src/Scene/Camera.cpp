@@ -11,8 +11,8 @@
 
 Camera::Camera(Context* context)
     :   m_Context{context}, m_CameraExtent{}, m_BufferObjects{}, m_Position{0.0f},
-        m_Target{0.0f, 0.0f, -1.0f}, m_Up{0.0f, 1.0f, 0.0f}, m_Speed{0.05f}, m_AngleHorizontal{-90.0f}, m_AngleVertical{0.0f},
-        m_MousePosX{(double)m_CameraExtent.width/2}, m_MousePosY{(double)m_CameraExtent.height/2}
+        m_Target{0.0f, 0.0f, -1.0f}, m_Up{0.0f, 1.0f, 0.0f}, m_Speed{0.025f}, m_AngleHorizontal{-90.0f}, m_AngleVertical{0.0f},
+        m_MousePosX{(double)m_CameraExtent.width/2}, m_MousePosY{(double)m_CameraExtent.height/2}, m_Exposure{1.0f}
 {
     CreateDescriptorBuffers();
     CreateDescriptorSet();
@@ -65,7 +65,7 @@ void Camera::SetExtent(const VkExtent2D extent)
 
     for(size_t i = 0; i < m_BufferObjects.size(); i++)
     {
-        m_BufferObjects[i].projectionMatrix = glm::perspective(glm::radians(45.0f), (float)m_CameraExtent.width/(float)m_CameraExtent.height, 0.1f, 100.0f);
+        m_BufferObjects[i].projectionMatrix = glm::perspective(glm::radians(45.0f), (float)m_CameraExtent.width/(float)m_CameraExtent.height, 0.1f, 1000.0f);
         m_BufferObjects[i].projectionMatrix[1][1] *= -1;
         m_BufferObjects[i].viewMatrix = glm::mat4(1.0f);
 

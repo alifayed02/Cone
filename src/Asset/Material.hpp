@@ -10,13 +10,16 @@ class Material
 public:
     struct MaterialObject
     {
-        glm::vec4 albedoColor{1.0f};
+        glm::vec4   albedoColor{1.0f};
+        float       metallicFactor{1.0f};
+        float       roughnessFactor{1.0f};
     };
     struct MaterialInfo
     {
         std::string     name;
         Texture*        albedo;
         Texture*        normal;
+        Texture*        metallicRoughness;
         MaterialObject  materialObject;
     };
 public:
@@ -34,12 +37,13 @@ private:
     void CreateDescriptorSet();
     void SetSamplerData();
 private:
-    const uint32_t textureCount = 2;
+    const uint32_t textureCount = 3;
 private:
     Context*                m_Context;
     std::string             m_Name;
     Texture*                m_AlbedoTexture;
     Texture*                m_NormalTexture;
+    Texture*                m_MetallicRoughness;
     MaterialObject          m_MaterialObject;
 private:
     VkDescriptorSet         m_DescriptorSet;

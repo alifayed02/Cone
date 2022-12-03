@@ -4,8 +4,9 @@
 
 struct PointLight
 {
-    vec3 position;
-    vec3 color;
+    vec3    position;
+    vec3    color;
+    float   radius;
 };
 
 layout(location = 0) in vec2 fragTexCoord;
@@ -18,8 +19,10 @@ layout(set = 0, binding = 2) uniform sampler2D normalSampler;
 
 layout(set = 0, binding = 3) uniform LightBuffer
 {
-    PointLight lights[MAX_POINT_LIGHTS_SIZE];
-    int numPointLights;
+    PointLight  lights[MAX_POINT_LIGHTS_SIZE];
+    int         numPointLights;
+    vec3        viewPos;
+    mat4        viewMatrix;
 } lbo;
 
 vec4 CalculatePointLight(PointLight light);

@@ -11,8 +11,7 @@
 
 Renderer::Renderer(Context* context, Scene* scene)
     :   m_Context{context}, m_ActiveScene{scene}, m_Swapchain{context}, m_CommandBuffers{},
-        m_InFlightFences{}, m_ImageAvailableSems{}, m_PresentSems{}, m_ImageIndex{}, m_FrameIndex{},
-        m_GBufferDescriptorPool{}, m_GBufferDescriptorSetLayout{}, m_GBufferDescriptorSets{}
+        m_InFlightFences{}, m_ImageAvailableSems{}, m_PresentSems{}, m_ImageIndex{}, m_FrameIndex{}
 {
     Init();
     m_ActiveScene->GetCamera().SetExtent(m_Swapchain.GetExtent());
@@ -26,6 +25,8 @@ void Renderer::Init()
     CreateGeometryPipeline();
     CreateLightingPassResources();
     CreateLightingPipeline();
+    CreateTonemappingPassResources();
+    CreateTonemappingPipeline();
 }
 
 void Renderer::CreateCommandBuffers()
@@ -136,9 +137,12 @@ void Renderer::CreateLightObjects()
 
     for(size_t i = 0; i < m_ActiveScene->GetPointLights().size(); i++)
     {
-        lbo.pointlights[i] = m_ActiveScene->GetPointLights()[i];
+        lbo.pointlights[i]  = m_ActiveScene->GetPointLights()[i];
         lbo.numPointLights++;
     }
+
+    lbo.viewPos     = m_ActiveScene->GetCamera().GetPosition();
+    lbo.viewMatrix  = m_ActiveScene->GetCamera().CreateCameraMatrix();
 
     for(size_t i = 0; i < m_LightsObjects.max_size(); i++)
     {
@@ -157,6 +161,21 @@ void Renderer::CreateLightBuffers()
         bufferInfo.vmaAllocFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
         m_LightsBuffers[i] = std::make_unique<Buffer>(m_Context, bufferInfo);
+        m_LightsBuffers[i]->Map(&m_LightsObjects[i], sizeof(Lights::LightBufferObject));
+    }
+}
+
+void Renderer::UpdateLights()
+{
+    for(size_t i = 0; i < m_LightsObjects.size(); i++)
+    {
+        for(size_t j = 0; j < m_LightsObjects[i].numPointLights; j++)
+        {
+            m_LightsObjects[i].pointlights[j].position  = m_ActiveScene->GetPointLights()[j].position;
+            m_LightsObjects[i].pointlights[j].color     = m_ActiveScene->GetPointLights()[j].color;
+        }
+        m_LightsObjects[i].viewPos      = m_ActiveScene->GetCamera().GetPosition();
+        m_LightsObjects[i].viewMatrix   = m_ActiveScene->GetCamera().CreateCameraMatrix();
         m_LightsBuffers[i]->Map(&m_LightsObjects[i], sizeof(Lights::LightBufferObject));
     }
 }
@@ -224,7 +243,20 @@ void Renderer::CreateLightingPassResources()
                     lightBufferBinding
                 };
 
-        m_NewGBufferDescriptorSets[i] = std::make_unique<DescriptorSet>(m_Context, bindings);
+        m_GBufferDescriptorSets[i] = std::make_unique<DescriptorSet>(m_Context, bindings);
+    }
+
+    Image::ImageInfo hdrImage{};
+    hdrImage.format         = VK_FORMAT_R16G16B16A16_SFLOAT;
+    hdrImage.desiredLayout  = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    hdrImage.dimension      = m_Swapchain.GetExtent();
+    hdrImage.usageFlags     = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    hdrImage.aspectFlags    = VK_IMAGE_ASPECT_COLOR_BIT;
+    hdrImage.genMipmaps     = VK_FALSE;
+
+    for(size_t i = 0; i < m_HDRImages.max_size(); i++)
+    {
+        m_HDRImages[i] = std::make_unique<Image>(m_Context, hdrImage);
     }
 }
 
@@ -234,6 +266,50 @@ void Renderer::CreateLightingPipeline()
     Pipeline::PipelineInfo pipeInfo{};
     pipeInfo.vertexPath         = "/Shaders/FullScreenQuadVert.spv";
     pipeInfo.fragmentPath       = "/Shaders/LightingFrag.spv";
+    pipeInfo.colorFormats       = { m_HDRImages[0]->GetImageFormat() };
+    pipeInfo.extent             = m_Swapchain.GetExtent();
+    pipeInfo.cullMode           = VK_CULL_MODE_FRONT_BIT;
+    pipeInfo.depthTest          = VK_FALSE;
+    pipeInfo.depthWrite         = VK_FALSE;
+    pipeInfo.vertexBindings     = VK_FALSE;
+    pipeInfo.enableBlend        = VK_FALSE;
+    pipeInfo.layouts            = { m_GBufferDescriptorSets[0]->GetDescriptorSetLayout() };
+
+    m_LightingPipeline = std::make_unique<Pipeline>(m_Context, pipeInfo);
+}
+
+void Renderer::CreateTonemappingPassResources()
+{
+    // HDR Descriptor Sets
+    for(size_t i = 0; i < m_HDRImages.size(); i++)
+    {
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.sampler       = m_GeometryBuffer[0]->GetSampler();
+        imageInfo.imageView     = m_HDRImages[i]->GetImageView();
+        imageInfo.imageLayout   = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+        DescriptorSet::BindingInfo bindingInfo{};
+        bindingInfo.type        = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        bindingInfo.binding     = 0;
+        bindingInfo.stageFlags  = VK_SHADER_STAGE_FRAGMENT_BIT;
+        bindingInfo.imageInfo   = &imageInfo;
+
+        std::vector<DescriptorSet::BindingInfo> bindings = { bindingInfo };
+
+        m_HDRDescriptorSets[i] = std::make_unique<DescriptorSet>(m_Context, bindings);
+    }
+}
+
+void Renderer::CreateTonemappingPipeline()
+{
+    VkPushConstantRange exposurePushConstant{};
+    exposurePushConstant.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    exposurePushConstant.offset     = 0U;
+    exposurePushConstant.size       = sizeof(PostProcessing::TonemappingParams);
+
+    Pipeline::PipelineInfo pipeInfo{};
+    pipeInfo.vertexPath         = "/Shaders/FullScreenQuadVert.spv";
+    pipeInfo.fragmentPath       = "/Shaders/TonemappingFrag.spv";
     pipeInfo.colorFormats       = { m_Swapchain.GetFormat() };
     pipeInfo.extent             = m_Swapchain.GetExtent();
     pipeInfo.cullMode           = VK_CULL_MODE_FRONT_BIT;
@@ -241,9 +317,10 @@ void Renderer::CreateLightingPipeline()
     pipeInfo.depthWrite         = VK_FALSE;
     pipeInfo.vertexBindings     = VK_FALSE;
     pipeInfo.enableBlend        = VK_FALSE;
-    pipeInfo.layouts            = { m_NewGBufferDescriptorSets[0]->GetDescriptorSetLayout() };
+    pipeInfo.layouts            = { m_HDRDescriptorSets[0]->GetDescriptorSetLayout() };
+    pipeInfo.pushConstants      = { exposurePushConstant };
 
-    m_LightingPipeline = std::make_unique<Pipeline>(m_Context, pipeInfo);
+    m_TonemappingPipeline = std::make_unique<Pipeline>(m_Context, pipeInfo);
 }
 
 void Renderer::GeometryPass()
@@ -313,14 +390,42 @@ void Renderer::GeometryPass()
 
 void Renderer::LightingPass()
 {
-    // Change Swapchain Image Layout
-    m_Swapchain.ChangeLayout(m_ImageIndex, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, m_CommandBuffers[m_FrameIndex]);
+    // Change HDR Image Layout
+    m_HDRImages[m_FrameIndex]->ChangeLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
     // Change GBuffer Image Layouts to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
     for(size_t i = 0; i < m_GeometryBuffer[m_FrameIndex]->GetAttachments().size() - 1; i++)
     {
         m_GeometryBuffer[m_FrameIndex]->GetAttachments()[i].ChangeLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     }
+
+    // Update LBO
+    UpdateLights();
+
+    Pipeline::Attachment colorAttachment{};
+    colorAttachment.imageView   = m_HDRImages[m_FrameIndex]->GetImageView();
+    colorAttachment.imageLayout = m_HDRImages[m_FrameIndex]->GetImageLayout();
+    colorAttachment.loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    colorAttachment.storeOp     = VK_ATTACHMENT_STORE_OP_STORE;
+    colorAttachment.clearValue  = {};
+
+    Pipeline::RenderInfo renderInfo{};
+    renderInfo.colorAttachments = { colorAttachment };
+    renderInfo.extent           = m_Swapchain.GetExtent();
+
+    m_LightingPipeline->BeginRender(m_CommandBuffers[m_FrameIndex], renderInfo);
+    m_LightingPipeline->BindDescriptorSet(m_GBufferDescriptorSets[m_FrameIndex]->GetDescriptorSet(), 0U);
+    m_LightingPipeline->Draw(3);
+    m_LightingPipeline->EndRender();
+}
+
+void Renderer::TonemappingPass()
+{
+    // Change Swapchain Image Layout
+    m_Swapchain.ChangeLayout(m_ImageIndex, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT, m_CommandBuffers[m_FrameIndex]);
+
+    // Change HDR Layout for sampling
+    m_HDRImages[m_FrameIndex]->ChangeLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     Pipeline::Attachment colorAttachment{};
     colorAttachment.imageView   = m_Swapchain.GetImageViews()[m_ImageIndex];
@@ -333,10 +438,13 @@ void Renderer::LightingPass()
     renderInfo.colorAttachments = { colorAttachment };
     renderInfo.extent           = m_Swapchain.GetExtent();
 
-    m_LightingPipeline->BeginRender(m_CommandBuffers[m_FrameIndex], renderInfo);
-    m_LightingPipeline->BindDescriptorSet(m_NewGBufferDescriptorSets[m_FrameIndex]->GetDescriptorSet(), 0U);
-    m_LightingPipeline->Draw(3);
-    m_LightingPipeline->EndRender();
+    m_TonemappingParams[m_FrameIndex].exposure = m_ActiveScene->GetCamera().GetExposure();
+
+    m_TonemappingPipeline->BeginRender(m_CommandBuffers[m_FrameIndex], renderInfo);
+    m_TonemappingPipeline->PushConstant(VK_SHADER_STAGE_FRAGMENT_BIT, 0U, sizeof(PostProcessing::TonemappingParams), &m_TonemappingParams[m_FrameIndex]);
+    m_TonemappingPipeline->BindDescriptorSet(m_HDRDescriptorSets[m_FrameIndex]->GetDescriptorSet(), 0U);
+    m_TonemappingPipeline->Draw(3);
+    m_TonemappingPipeline->EndRender();
 }
 
 void Renderer::BeginFrame()
@@ -394,6 +502,7 @@ void Renderer::DrawFrame()
     BeginFrame();
     GeometryPass();
     LightingPass();
+    TonemappingPass();
     EndFrame();
 }
 
@@ -401,14 +510,6 @@ Renderer::~Renderer()
 {
     vkDeviceWaitIdle(m_Context->GetLogicalDevice());
 
-    if(m_GBufferDescriptorSetLayout)
-    {
-        vkDestroyDescriptorSetLayout(m_Context->GetLogicalDevice(), m_GBufferDescriptorSetLayout, nullptr);
-    }
-    if(m_GBufferDescriptorPool)
-    {
-        vkDestroyDescriptorPool(m_Context->GetLogicalDevice(), m_GBufferDescriptorPool, nullptr);
-    }
     if(!m_CommandBuffers.empty())
     {
         vkFreeCommandBuffers(m_Context->GetLogicalDevice(), m_Context->GetCommandPool(), m_CommandBuffers.size(), m_CommandBuffers.data());
