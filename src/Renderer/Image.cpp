@@ -5,10 +5,9 @@
 #include "Buffer/Buffer.hpp"
 
 Image::Image(Context* context, const ImageInfo& imageInfo)
-    :   m_Context{context}, m_Image{}, m_ImageView{},
-        m_ImageLayout{VK_IMAGE_LAYOUT_UNDEFINED}, m_ImageFormat{imageInfo.format},
-        m_ImageDimension{imageInfo.dimension}, m_GenMipmaps{imageInfo.genMipmaps}, m_ImageMipLevels{1}, m_UsageFlags{imageInfo.usageFlags},
-        m_AspectFlags{imageInfo.aspectFlags}, m_Allocation{}, m_AllocationInfo{}
+    :   m_Context{context}, m_Image{}, m_ImageLayout{VK_IMAGE_LAYOUT_UNDEFINED}, m_ImageFormat{imageInfo.format},
+        m_ImageDimension{imageInfo.dimension}, m_GenMipmaps{imageInfo.genMipmaps}, m_ImageMipLevels{1}, m_ImageLayers{imageInfo.numLayers},
+        m_UsageFlags{imageInfo.usageFlags}, m_AspectFlags{imageInfo.aspectFlags}, m_Allocation{}, m_AllocationInfo{}
 {
     CreateImage();
     CreateImageView();
@@ -30,6 +29,8 @@ void Image::ChangeLayout(VkImageLayout newLayout, VkPipelineStageFlags sourceFla
     transitionInfo.image            = m_Image;
     transitionInfo.mipLevels        = m_ImageMipLevels;
     transitionInfo.aspectFlags      = m_AspectFlags;
+    transitionInfo.baseArrayLevel   = 0U;
+    transitionInfo.arrayLevels      = m_ImageLayers;
     transitionInfo.sourceStageFlags = sourceFlags;
 
     Utilities::ChangeLayout(commandBuffer, transitionInfo);
@@ -83,7 +84,7 @@ void Image::CreateImage()
     imageCreateInfo.extent.height   = m_ImageDimension.height;
     imageCreateInfo.extent.depth    = 1U;
     imageCreateInfo.mipLevels       = m_ImageMipLevels;
-    imageCreateInfo.arrayLayers     = 1U;
+    imageCreateInfo.arrayLayers     = m_ImageLayers;
     imageCreateInfo.samples         = VK_SAMPLE_COUNT_1_BIT;
     imageCreateInfo.tiling          = VK_IMAGE_TILING_OPTIMAL;
     imageCreateInfo.usage           = m_UsageFlags;
@@ -99,18 +100,22 @@ void Image::CreateImage()
 
 void Image::CreateImageView()
 {
-    VkImageViewCreateInfo imageViewCreateInfo{};
-    imageViewCreateInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    imageViewCreateInfo.image                           = m_Image;
-    imageViewCreateInfo.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
-    imageViewCreateInfo.format                          = m_ImageFormat;
-    imageViewCreateInfo.subresourceRange.aspectMask     = m_AspectFlags;
-    imageViewCreateInfo.subresourceRange.baseMipLevel   = 0;
-    imageViewCreateInfo.subresourceRange.levelCount     = m_ImageMipLevels;
-    imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
-    imageViewCreateInfo.subresourceRange.layerCount     = 1;
+    m_ImageViews.resize(m_ImageLayers);
+    for(uint32_t i = 0; i < m_ImageLayers; i++)
+    {
+        VkImageViewCreateInfo imageViewCreateInfo{};
+        imageViewCreateInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        imageViewCreateInfo.image                           = m_Image;
+        imageViewCreateInfo.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
+        imageViewCreateInfo.format                          = m_ImageFormat;
+        imageViewCreateInfo.subresourceRange.aspectMask     = m_AspectFlags;
+        imageViewCreateInfo.subresourceRange.baseMipLevel   = 0;
+        imageViewCreateInfo.subresourceRange.levelCount     = m_ImageMipLevels;
+        imageViewCreateInfo.subresourceRange.baseArrayLayer = i;
+        imageViewCreateInfo.subresourceRange.layerCount     = 1U;
 
-    VK_CHECK(vkCreateImageView(m_Context->GetLogicalDevice(), &imageViewCreateInfo, nullptr, &m_ImageView))
+        VK_CHECK(vkCreateImageView(m_Context->GetLogicalDevice(), &imageViewCreateInfo, nullptr, &m_ImageViews[i]))
+    }
 }
 
 void Image::GenerateMipmaps(VkImageLayout finalLayout)
@@ -214,9 +219,12 @@ void Image::GenerateMipmaps(VkImageLayout finalLayout)
 
 Image::~Image()
 {
-    if(m_ImageView)
+    if(!m_ImageViews.empty())
     {
-        vkDestroyImageView(m_Context->GetLogicalDevice(), m_ImageView, nullptr);
+        for(size_t i = 0; i < m_ImageViews.size(); i++)
+        {
+            vkDestroyImageView(m_Context->GetLogicalDevice(), m_ImageViews[i], nullptr);
+        }
     }
     if(m_Image)
     {

@@ -21,6 +21,8 @@ void Renderer::Init()
 {
     CreateCommandBuffers();
     CreateSyncResources();
+//    CreateShadowPassResources();
+//    CreateShadowPipeline();
     CreateGeometryPassResources();
     CreateGeometryPipeline();
     CreateLightingPassResources();
@@ -56,6 +58,64 @@ void Renderer::CreateSyncResources()
         VK_CHECK(vkCreateFence(m_Context->GetLogicalDevice(), &fenceInfo, nullptr, &m_InFlightFences[i]))
         VK_CHECK(vkCreateSemaphore(m_Context->GetLogicalDevice(), &semaphoreInfo, nullptr, &m_ImageAvailableSems[i]))
         VK_CHECK(vkCreateSemaphore(m_Context->GetLogicalDevice(), &semaphoreInfo, nullptr, &m_PresentSems[i]))
+    }
+}
+
+void Renderer::CreateShadowPassResources()
+{
+    Image::ImageInfo directionalDepthImage{};
+    directionalDepthImage.format           = VK_FORMAT_D32_SFLOAT;
+    directionalDepthImage.desiredLayout    = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+    directionalDepthImage.dimension        = { 1024, 1024 };
+    directionalDepthImage.usageFlags       = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    directionalDepthImage.aspectFlags      = VK_IMAGE_ASPECT_DEPTH_BIT;
+    directionalDepthImage.numLayers        = m_ActiveScene->GetDirectionalLights().size();
+    directionalDepthImage.genMipmaps       = VK_FALSE;
+
+    // Directional
+    for(size_t i = 0; i < m_DirectionalMaps.max_size(); i++)
+    {
+        m_DirectionalMaps[i].perLightImage = std::make_unique<Image>(m_Context, directionalDepthImage);
+        m_DirectionalMaps[i].data.resize(m_ActiveScene->GetDirectionalLights().size());
+    }
+}
+
+void Renderer::CreateShadowPipeline()
+{
+    VkPushConstantRange shadowPushConstant{};
+    shadowPushConstant.stageFlags    = VK_SHADER_STAGE_VERTEX_BIT;
+    shadowPushConstant.offset        = 0;
+    shadowPushConstant.size          = sizeof(glm::mat4) + sizeof(glm::mat4);
+
+    Pipeline::PipelineInfo pipeInfo{};
+    pipeInfo.vertexPath         = "/Shaders/ShadowVert.spv";
+    pipeInfo.depthFormat        = m_DirectionalMaps[0].perLightImage->GetImageFormat();
+    pipeInfo.extent             = m_DirectionalMaps[0].perLightImage->GetImageExtent();
+    pipeInfo.cullMode           = VK_CULL_MODE_BACK_BIT;
+    pipeInfo.depthTest          = VK_TRUE;
+    pipeInfo.depthWrite         = VK_TRUE;
+    pipeInfo.vertexBindings     = VK_TRUE;
+    pipeInfo.enableBlend        = VK_FALSE;
+    pipeInfo.pushConstants      = { shadowPushConstant };
+}
+
+void Renderer::UpdateShadowProjections()
+{
+//    for(size_t i = 0; i < m_DirectionalViewProjs.max_size(); i++)
+//    {
+//        float nearPlane = 1.0f;
+//        float farPlane = 7.5f;
+//        glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, nearPlane, farPlane);
+//        glm::mat4 lightView = glm::lookAt(glm::vec3(-2.0f, 4.0f, -1.0f), glm::vec3( 0.0f, 0.0f,  0.0f), glm::vec3( 0.0f, 1.0f,  0.0f));
+//    }
+
+    for(size_t i = 0; i < m_DirectionalMaps.max_size(); i++)
+    {
+        for(size_t j = 0; j < m_DirectionalMaps[i].data.size(); j++)
+        {
+            // i = frame    j = directional index
+
+        }
     }
 }
 
@@ -97,10 +157,10 @@ void Renderer::CreateGeometryPassResources()
 
 void Renderer::CreateGeometryPipeline()
 {
-    VkPushConstantRange cameraPushConstant{};
-    cameraPushConstant.stageFlags    = VK_SHADER_STAGE_VERTEX_BIT;
-    cameraPushConstant.offset        = 0;
-    cameraPushConstant.size          = sizeof(glm::mat4);
+    VkPushConstantRange modelPushConstant{};
+    modelPushConstant.stageFlags    = VK_SHADER_STAGE_VERTEX_BIT;
+    modelPushConstant.offset        = 0;
+    modelPushConstant.size          = sizeof(glm::mat4);
 
     VkPushConstantRange materialPushConstant{};
     materialPushConstant.stageFlags    = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -126,7 +186,7 @@ void Renderer::CreateGeometryPipeline()
     pipeInfo.vertexBindings     = VK_TRUE;
     pipeInfo.enableBlend        = VK_FALSE;
     pipeInfo.layouts            = { m_ActiveScene->GetCamera().GetCameraLayout(), m_ActiveScene->GetSceneMembers()[0].GetMesh()->m_SubMeshes[0].GetMaterial()->GetLayout() };
-    pipeInfo.pushConstants      = { cameraPushConstant, materialPushConstant };
+    pipeInfo.pushConstants      = { modelPushConstant, materialPushConstant };
 
     m_GeometryPipeline = std::make_unique<Pipeline>(m_Context, pipeInfo);
 }
@@ -138,11 +198,17 @@ void Renderer::CreateLightObjects()
     for(size_t i = 0; i < m_ActiveScene->GetPointLights().size(); i++)
     {
         lbo.pointlights[i]  = m_ActiveScene->GetPointLights()[i];
-        lbo.numPointLights++;
     }
 
-    lbo.viewPos     = m_ActiveScene->GetCamera().GetPosition();
-    lbo.viewMatrix  = m_ActiveScene->GetCamera().CreateCameraMatrix();
+    for(size_t i = 0; i < m_ActiveScene->GetDirectionalLights().size(); i++)
+    {
+        lbo.directionalLights[i] = m_ActiveScene->GetDirectionalLights()[i];
+    }
+
+    lbo.numPointLights          = m_ActiveScene->GetPointLights().size();
+    lbo.numDirectionalLights    = m_ActiveScene->GetDirectionalLights().size();
+    lbo.viewPos                 = m_ActiveScene->GetCamera().GetPosition();
+    lbo.viewMatrix              = m_ActiveScene->GetCamera().CreateCameraMatrix();
 
     for(size_t i = 0; i < m_LightsObjects.max_size(); i++)
     {
@@ -174,6 +240,13 @@ void Renderer::UpdateLights()
             m_LightsObjects[i].pointlights[j].position  = m_ActiveScene->GetPointLights()[j].position;
             m_LightsObjects[i].pointlights[j].color     = m_ActiveScene->GetPointLights()[j].color;
         }
+
+        for(size_t j = 0; j < m_LightsObjects[i].numDirectionalLights; j++)
+        {
+            m_LightsObjects[i].directionalLights[j].direction   = m_ActiveScene->GetDirectionalLights()[j].direction;
+            m_LightsObjects[i].directionalLights[j].color       = m_ActiveScene->GetDirectionalLights()[j].color;
+        }
+
         m_LightsObjects[i].viewPos      = m_ActiveScene->GetCamera().GetPosition();
         m_LightsObjects[i].viewMatrix   = m_ActiveScene->GetCamera().CreateCameraMatrix();
         m_LightsBuffers[i]->Map(&m_LightsObjects[i], sizeof(Lights::LightBufferObject));
@@ -190,7 +263,7 @@ void Renderer::CreateLightingPassResources()
         // Albedo
         VkDescriptorImageInfo albedoDescriptorInfo{};
         albedoDescriptorInfo.sampler       = m_GeometryBuffer[i]->GetSampler();
-        albedoDescriptorInfo.imageView     = m_GeometryBuffer[i]->GetAttachments()[0].GetImageView();
+        albedoDescriptorInfo.imageView     = m_GeometryBuffer[i]->GetAttachments()[0].GetImageView(0U);
         albedoDescriptorInfo.imageLayout   = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         DescriptorSet::BindingInfo albedoSamplerBinding{};
@@ -202,7 +275,7 @@ void Renderer::CreateLightingPassResources()
         // Position
         VkDescriptorImageInfo positionDescriptorInfo{};
         positionDescriptorInfo.sampler       = m_GeometryBuffer[i]->GetSampler();
-        positionDescriptorInfo.imageView     = m_GeometryBuffer[i]->GetAttachments()[1].GetImageView();
+        positionDescriptorInfo.imageView     = m_GeometryBuffer[i]->GetAttachments()[1].GetImageView(0U);
         positionDescriptorInfo.imageLayout   = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         DescriptorSet::BindingInfo positionSamplerBinding{};
@@ -214,7 +287,7 @@ void Renderer::CreateLightingPassResources()
         // Normal
         VkDescriptorImageInfo normalDescriptorInfo{};
         normalDescriptorInfo.sampler       = m_GeometryBuffer[i]->GetSampler();
-        normalDescriptorInfo.imageView     = m_GeometryBuffer[i]->GetAttachments()[2].GetImageView();
+        normalDescriptorInfo.imageView     = m_GeometryBuffer[i]->GetAttachments()[2].GetImageView(0U);
         normalDescriptorInfo.imageLayout   = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         DescriptorSet::BindingInfo normalSamplerBinding{};
@@ -235,6 +308,9 @@ void Renderer::CreateLightingPassResources()
         lightBufferBinding.stageFlags   = VK_SHADER_STAGE_FRAGMENT_BIT;
         lightBufferBinding.bufferInfo   = &lightBufferInfo;
 
+        // Shadows
+
+
         std::vector<DescriptorSet::BindingInfo> bindings =
                 {
                     albedoSamplerBinding,
@@ -252,6 +328,7 @@ void Renderer::CreateLightingPassResources()
     hdrImage.dimension      = m_Swapchain.GetExtent();
     hdrImage.usageFlags     = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
     hdrImage.aspectFlags    = VK_IMAGE_ASPECT_COLOR_BIT;
+    hdrImage.numLayers      = 1U;
     hdrImage.genMipmaps     = VK_FALSE;
 
     for(size_t i = 0; i < m_HDRImages.max_size(); i++)
@@ -262,7 +339,6 @@ void Renderer::CreateLightingPassResources()
 
 void Renderer::CreateLightingPipeline()
 {
-    // Full screen quad for now. Bounding spheres planned.
     Pipeline::PipelineInfo pipeInfo{};
     pipeInfo.vertexPath         = "/Shaders/FullScreenQuadVert.spv";
     pipeInfo.fragmentPath       = "/Shaders/LightingFrag.spv";
@@ -285,7 +361,7 @@ void Renderer::CreateTonemappingPassResources()
     {
         VkDescriptorImageInfo imageInfo{};
         imageInfo.sampler       = m_GeometryBuffer[0]->GetSampler();
-        imageInfo.imageView     = m_HDRImages[i]->GetImageView();
+        imageInfo.imageView     = m_HDRImages[i]->GetImageView(0U);
         imageInfo.imageLayout   = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         DescriptorSet::BindingInfo bindingInfo{};
@@ -323,9 +399,47 @@ void Renderer::CreateTonemappingPipeline()
     m_TonemappingPipeline = std::make_unique<Pipeline>(m_Context, pipeInfo);
 }
 
+void Renderer::ShadowPass()
+{
+    // Change image layout to VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL (could be in VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+    m_DirectionalMaps[m_FrameIndex].perLightImage->ChangeLayout(VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+
+    // Update shadow frustums
+    UpdateShadowProjections();
+
+    for(size_t i = 0; i < m_DirectionalMaps[m_FrameIndex].perLightImage->GetLayerCount(); i++)
+    {
+        Pipeline::Attachment depthAttachment{};
+        depthAttachment.imageView       = m_DirectionalMaps[m_FrameIndex].perLightImage->GetImageView(i);
+        depthAttachment.imageLayout     = m_DirectionalMaps[m_FrameIndex].perLightImage->GetImageLayout();
+        depthAttachment.loadOp          = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depthAttachment.storeOp         = VK_ATTACHMENT_STORE_OP_STORE;
+        depthAttachment.clearValue      = {};
+
+        Pipeline::RenderInfo renderInfo{};
+        renderInfo.depthAttachment  = depthAttachment;
+        renderInfo.extent           = m_DirectionalMaps[m_FrameIndex].perLightImage->GetImageExtent();
+
+        m_ShadowPipeline->BeginRender(m_CommandBuffers[m_FrameIndex], renderInfo);
+
+        for(const auto& sceneMember : m_ActiveScene->GetSceneMembers())
+        {
+            m_ShadowPipeline->PushConstant(VK_SHADER_STAGE_VERTEX_BIT, 0U, sizeof(Lights::DirectionalShadowBuffer), &m_DirectionalMaps[m_FrameIndex].data[i]);
+            for(const auto& submesh : sceneMember.GetMesh()->m_SubMeshes)
+            {
+                m_ShadowPipeline->BindVertexBuffer(submesh.GetVertexBuffer());
+                m_ShadowPipeline->BindIndexBuffer(submesh.GetIndexBuffer());
+                m_ShadowPipeline->DrawIndexed(submesh.GetIndexBuffer().GetIndicesCount());
+            }
+        }
+
+        m_ShadowPipeline->EndRender();
+    }
+}
+
 void Renderer::GeometryPass()
 {
-    // Change GBuffer Image Layouts to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+    // Change GBuffer image layouts to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
     for(size_t i = 0; i < m_GeometryBuffer[m_FrameIndex]->GetAttachments().size() - 1; i++)
     {
         m_GeometryBuffer[m_FrameIndex]->GetAttachments()[i].ChangeLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
@@ -334,7 +448,7 @@ void Renderer::GeometryPass()
     std::vector<Pipeline::Attachment> colorAttachments;
 
     Pipeline::Attachment albedoAttachment{};
-    albedoAttachment.imageView      = m_GeometryBuffer[m_FrameIndex]->GetAttachments()[0].GetImageView();
+    albedoAttachment.imageView      = m_GeometryBuffer[m_FrameIndex]->GetAttachments()[0].GetImageView(0U);
     albedoAttachment.imageLayout    = m_GeometryBuffer[m_FrameIndex]->GetAttachments()[0].GetImageLayout();
     albedoAttachment.loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR;
     albedoAttachment.storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
@@ -342,7 +456,7 @@ void Renderer::GeometryPass()
     colorAttachments.push_back(albedoAttachment);
 
     Pipeline::Attachment positionAttachment{};
-    positionAttachment.imageView      = m_GeometryBuffer[m_FrameIndex]->GetAttachments()[1].GetImageView();
+    positionAttachment.imageView      = m_GeometryBuffer[m_FrameIndex]->GetAttachments()[1].GetImageView(0U);
     positionAttachment.imageLayout    = m_GeometryBuffer[m_FrameIndex]->GetAttachments()[1].GetImageLayout();
     positionAttachment.loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR;
     positionAttachment.storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
@@ -350,7 +464,7 @@ void Renderer::GeometryPass()
     colorAttachments.push_back(positionAttachment);
 
     Pipeline::Attachment normalAttachment{};
-    normalAttachment.imageView      = m_GeometryBuffer[m_FrameIndex]->GetAttachments()[2].GetImageView();
+    normalAttachment.imageView      = m_GeometryBuffer[m_FrameIndex]->GetAttachments()[2].GetImageView(0U);
     normalAttachment.imageLayout    = m_GeometryBuffer[m_FrameIndex]->GetAttachments()[2].GetImageLayout();
     normalAttachment.loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR;
     normalAttachment.storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
@@ -358,7 +472,7 @@ void Renderer::GeometryPass()
     colorAttachments.push_back(normalAttachment);
 
     Pipeline::Attachment depthAttachment{};
-    depthAttachment.imageView   = m_GeometryBuffer[m_FrameIndex]->GetAttachments()[3].GetImageView();
+    depthAttachment.imageView   = m_GeometryBuffer[m_FrameIndex]->GetAttachments()[3].GetImageView(0U);
     depthAttachment.imageLayout = m_GeometryBuffer[m_FrameIndex]->GetAttachments()[3].GetImageLayout();
     depthAttachment.loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR;
     depthAttachment.storeOp     = VK_ATTACHMENT_STORE_OP_STORE;
@@ -390,8 +504,11 @@ void Renderer::GeometryPass()
 
 void Renderer::LightingPass()
 {
-    // Change HDR Image Layout
+    // Change HDR image layout
     m_HDRImages[m_FrameIndex]->ChangeLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+
+    // Change Shadow image layouts to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+//    m_DirectionalShadowImages[m_FrameIndex]->ChangeLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     // Change GBuffer Image Layouts to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
     for(size_t i = 0; i < m_GeometryBuffer[m_FrameIndex]->GetAttachments().size() - 1; i++)
@@ -403,7 +520,7 @@ void Renderer::LightingPass()
     UpdateLights();
 
     Pipeline::Attachment colorAttachment{};
-    colorAttachment.imageView   = m_HDRImages[m_FrameIndex]->GetImageView();
+    colorAttachment.imageView   = m_HDRImages[m_FrameIndex]->GetImageView(0U);
     colorAttachment.imageLayout = m_HDRImages[m_FrameIndex]->GetImageLayout();
     colorAttachment.loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR;
     colorAttachment.storeOp     = VK_ATTACHMENT_STORE_OP_STORE;

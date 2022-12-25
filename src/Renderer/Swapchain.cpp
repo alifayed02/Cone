@@ -63,6 +63,8 @@ void Swapchain::ChangeLayout(size_t imageIndex, VkImageLayout newLayout, VkImage
     layoutTransitionInfo.newLayout      = newLayout;
     layoutTransitionInfo.image          = m_Images[imageIndex];
     layoutTransitionInfo.mipLevels      = 1;
+    layoutTransitionInfo.baseArrayLevel = 0U;
+    layoutTransitionInfo.arrayLevels    = 1U;
     layoutTransitionInfo.aspectFlags    = aspectFlags;
 
     Utilities::ChangeLayout(commandBuffer, layoutTransitionInfo);

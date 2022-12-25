@@ -15,6 +15,7 @@ Framebuffer::Framebuffer(Context* context, VkExtent2D dimension, const std::vect
         imageInfo.dimension     = m_Dimension;
         imageInfo.usageFlags    = attachment.usageFlags;
         imageInfo.aspectFlags   = attachment.aspectFlags;
+        imageInfo.numLayers     = 1U;
         imageInfo.genMipmaps    = VK_FALSE;
 
         m_Attachments.emplace_back(context, imageInfo);

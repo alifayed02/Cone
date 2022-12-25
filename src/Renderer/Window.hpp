@@ -19,6 +19,8 @@ public:
     inline int GetWidth() const { return m_Extent.width; }
     inline int GetHeight() const { return m_Extent.height; }
 private:
+    void InitIcon();
+private:
     GLFWwindow* m_Window;
     VkExtent2D  m_Extent;
     std::string m_WindowTitle;

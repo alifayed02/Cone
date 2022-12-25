@@ -15,13 +15,26 @@
  {
     struct LayoutTransitionInfo
     {
-        VkImageLayout           oldLayout;
-        VkImageLayout           newLayout;
-        VkImage                 image;
-        uint32_t                mipLevels;
-        VkImageAspectFlags      aspectFlags;
+        VkImageLayout           oldLayout{};
+        VkImageLayout           newLayout{};
+        VkImage                 image{};
+        uint32_t                mipLevels{};
+        uint32_t                baseArrayLevel{};
+        uint32_t                arrayLevels{};
+        VkImageAspectFlags      aspectFlags{};
         VkPipelineStageFlags    sourceStageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
     };
 
+    struct ImageViewInfo
+    {
+        VkImage             image{};
+        VkImageType         type{};
+        VkFormat            format{};
+        VkImageAspectFlags  flags{};
+        uint32_t            mipLevels{};
+        uint32_t            layerLevels{};
+    };
+
     void ChangeLayout(VkCommandBuffer commandBuffer, const LayoutTransitionInfo& layoutTransitionInfo);
+    void CreateImageView(const ImageViewInfo& imageViewInfo, VkDevice logicalDevice, VkImageView imageView);
  }

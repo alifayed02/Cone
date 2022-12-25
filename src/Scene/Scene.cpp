@@ -37,3 +37,13 @@ Lights::PointLight* Scene::AddPointLight(const Lights::PointLight pointLight)
     m_PointLights.emplace_back(pointLight);
     return &m_PointLights.back();
 }
+
+Lights::DirectionalLight* Scene::AddDirectionalLight(Lights::DirectionalLight directionalLight)
+{
+    if(m_DirectionalLights.size() >= MAX_DIRECTIONAL_LIGHTS_SIZE)
+    {
+        throw std::runtime_error("Error: Cannot add more directional lights.");
+    }
+    m_DirectionalLights.emplace_back(directionalLight);
+    return &m_DirectionalLights.back();
+}

@@ -3,4 +3,5 @@ glslc Geometry.frag         -o GeometryFrag.spv
 glslc FullScreenQuad.vert   -o FullScreenQuadVert.spv
 glslc Lighting.frag         -o LightingFrag.spv
 glslc Tonemapping.frag      -o TonemappingFrag.spv
+glslc Shadow.vert           -o ShadowVert.spv
 pause

@@ -15,8 +15,8 @@ namespace Utilities
         barrier.subresourceRange.aspectMask     = layoutTransitionInfo.aspectFlags;
         barrier.subresourceRange.baseMipLevel   = 0;
         barrier.subresourceRange.levelCount     = layoutTransitionInfo.mipLevels;
-        barrier.subresourceRange.baseArrayLayer = 0;
-        barrier.subresourceRange.layerCount     = 1;
+        barrier.subresourceRange.baseArrayLayer = layoutTransitionInfo.baseArrayLevel;
+        barrier.subresourceRange.layerCount     = layoutTransitionInfo.arrayLevels;
 
         VkPipelineStageFlags sourceStage;
         VkPipelineStageFlags destinationStage;
@@ -37,6 +37,10 @@ namespace Utilities
         {
             barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
             sourceStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        } else if(layoutTransitionInfo.oldLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL)
+        {
+            barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+            sourceStage = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
         } else if(layoutTransitionInfo.oldLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
         {
             barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
@@ -79,5 +83,21 @@ namespace Utilities
                 0, nullptr,
                 1, &barrier
         );
+    }
+
+    void CreateImageView(const ImageViewInfo& imageViewInfo, VkDevice logicalDevice, VkImageView imageView)
+    {
+        VkImageViewCreateInfo imageViewCreateInfo{};
+        imageViewCreateInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        imageViewCreateInfo.image                           = imageViewInfo.image;
+        imageViewCreateInfo.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
+        imageViewCreateInfo.format                          = imageViewInfo.format;
+        imageViewCreateInfo.subresourceRange.aspectMask     = imageViewInfo.flags;
+        imageViewCreateInfo.subresourceRange.baseMipLevel   = 0;
+        imageViewCreateInfo.subresourceRange.levelCount     = imageViewInfo.mipLevels;
+        imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+        imageViewCreateInfo.subresourceRange.layerCount     = imageViewInfo.layerLevels;
+
+        VK_CHECK(vkCreateImageView(logicalDevice, &imageViewCreateInfo, nullptr, &imageView))
     }
 }

@@ -5,9 +5,9 @@ layout(location = 1) in vec3 fragNormal;
 layout(location = 2) in vec2 fragTexCoord;
 layout(location = 3) in mat3 fragTBN;
 
-layout(location = 0) out vec4 albedoAttachment;
-layout(location = 1) out vec4 positionAttachment;
-layout(location = 2) out vec4 normalAttachment;
+layout(location = 0) out vec4 gAlbedo;
+layout(location = 1) out vec4 gPosition;
+layout(location = 2) out vec4 gNormal;
 
 layout(set = 1, binding = 0) uniform sampler2D albedoTexSampler;
 layout(set = 1, binding = 1) uniform sampler2D normalTexSampler;
@@ -34,10 +34,10 @@ vec4 TangentToWorld()
 void main()
 {
     // Metallic in A channel
-    albedoAttachment    = vec4(texture(albedoTexSampler, fragTexCoord).rgb, texture(metallicRoughnessTexSampler, fragTexCoord).b * matObject.metallicFactor);
+    gAlbedo = vec4(texture(albedoTexSampler, fragTexCoord).rgb, texture(metallicRoughnessTexSampler, fragTexCoord).b * matObject.metallicFactor);
 
     // Roughness in A Channel
-    positionAttachment  = vec4(fragPos, texture(metallicRoughnessTexSampler, fragTexCoord).g * matObject.roughnessFactor);
+    gPosition = vec4(fragPos, texture(metallicRoughnessTexSampler, fragTexCoord).g * matObject.roughnessFactor);
 
-    normalAttachment    = normalize(TangentToWorld());
+    gNormal = normalize(TangentToWorld());
 }

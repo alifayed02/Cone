@@ -42,6 +42,7 @@ void Texture::CreateImage(const std::string& path)
     texImageInfo.dimension      = {(uint32_t)m_TextureInfo.width, (uint32_t)m_TextureInfo.height};
     texImageInfo.usageFlags     = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
     texImageInfo.aspectFlags    = VK_IMAGE_ASPECT_COLOR_BIT;
+    texImageInfo.numLayers      = 1U;
     texImageInfo.genMipmaps     = VK_TRUE;
 
     m_Image = std::make_unique<Image>(m_Context, texImageInfo);

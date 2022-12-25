@@ -50,13 +50,19 @@ void Cone::CreateMainScene()
 {
     m_MainScene = std::make_unique<Scene>(m_Context.get());
 
+    // Models
     m_AssetManager->LoadMesh("Sponza", "/Assets/Models/Sponza/Sponza.gltf");
     SceneMember* sponza = m_MainScene->AddSceneMember(m_AssetManager->GetMesh("Sponza"));
     sponza->Scale(0.01f, 0.01f, 0.01f).Translate(0.0f, -0.3f, -1.0f).UpdateModelMatrix();
 
+    // Camera Settings
     m_MainScene->GetCamera().SetExposure(1.0f);
 
-    m_MainScene->AddPointLight({ glm::vec3(-7.66f, 1.95f, -1.32f), glm::vec3(0.6f, 0.6f, 0.6f), 10.0f });
+    // Point Lights
+//    m_MainScene->AddPointLight({ glm::vec3(8.21f, 1.65f, -1.36f), glm::vec3(0.6f, 0.6f, 0.6f), 10.0f });
+
+    // Directional Lights
+    m_MainScene->AddDirectionalLight({ glm::vec3(-2.41f, -0.65f, -0.23f), glm::vec3(0.6f, 0.6f, 0.6f) });
 }
 
 void Cone::UpdateMainScene()

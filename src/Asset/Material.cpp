@@ -65,17 +65,17 @@ void Material::SetSamplerData()
 {
     VkDescriptorImageInfo albedoImageInfo{};
     albedoImageInfo.sampler     = m_AlbedoTexture->GetSampler();
-    albedoImageInfo.imageView   = m_AlbedoTexture->GetImage()->GetImageView();
+    albedoImageInfo.imageView   = m_AlbedoTexture->GetImage()->GetImageView(0U);
     albedoImageInfo.imageLayout = m_AlbedoTexture->GetImage()->GetImageLayout();
 
     VkDescriptorImageInfo normalImageInfo{};
     normalImageInfo.sampler     = m_NormalTexture->GetSampler();
-    normalImageInfo.imageView   = m_NormalTexture->GetImage()->GetImageView();
+    normalImageInfo.imageView   = m_NormalTexture->GetImage()->GetImageView(0U);
     normalImageInfo.imageLayout = m_NormalTexture->GetImage()->GetImageLayout();
 
     VkDescriptorImageInfo metallicRoughnessImageInfo{};
     metallicRoughnessImageInfo.sampler     = m_MetallicRoughness->GetSampler();
-    metallicRoughnessImageInfo.imageView   = m_MetallicRoughness->GetImage()->GetImageView();
+    metallicRoughnessImageInfo.imageView   = m_MetallicRoughness->GetImage()->GetImageView(0U);
     metallicRoughnessImageInfo.imageLayout = m_MetallicRoughness->GetImage()->GetImageLayout();
 
     VkWriteDescriptorSet albedoWriteSet{};

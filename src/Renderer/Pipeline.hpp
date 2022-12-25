@@ -10,16 +10,16 @@ class Pipeline
 public:
     struct PipelineInfo
     {
-        std::string_view        vertexPath;
-        std::string_view        fragmentPath;
-        std::vector<VkFormat>   colorFormats;
-        VkFormat                depthFormat;
-        VkExtent2D              extent;
-        VkCullModeFlags         cullMode;
-        VkBool32                depthTest;
-        VkBool32                depthWrite;
-        VkBool32                vertexBindings;
-        VkBool32                enableBlend;
+        std::optional<std::string>  vertexPath;
+        std::optional<std::string>  fragmentPath;
+        std::vector<VkFormat>       colorFormats;
+        VkFormat                    depthFormat;
+        VkExtent2D                  extent;
+        VkCullModeFlags             cullMode;
+        VkBool32                    depthTest;
+        VkBool32                    depthWrite;
+        VkBool32                    vertexBindings;
+        VkBool32                    enableBlend;
 
         std::vector<VkDescriptorSetLayout>  layouts;
         std::vector<VkPushConstantRange>    pushConstants;

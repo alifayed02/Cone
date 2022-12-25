@@ -7,25 +7,38 @@ Pipeline::Pipeline(Context* context, const PipelineInfo& info)
     :   m_Context(context), m_Pipeline{}, m_PipelineLayout{}, m_CurrentCommandBuffer{},
         m_DepthEnabled{info.depthFormat != VK_FORMAT_UNDEFINED}
 {
-    auto vertexCode     = ReadShaderCode(info.vertexPath);
-    auto fragmentCode   = ReadShaderCode(info.fragmentPath);
+    VkShaderModule vertexModule = VK_NULL_HANDLE;
+    VkShaderModule fragmentModule = VK_NULL_HANDLE;
 
-    VkShaderModule vertexModule     = CreateShaderModule(vertexCode);
-    VkShaderModule fragmentModule   = CreateShaderModule(fragmentCode);
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 
-    VkPipelineShaderStageCreateInfo vertexShaderStageInfo{};
-    vertexShaderStageInfo.sType     = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    vertexShaderStageInfo.stage     = VK_SHADER_STAGE_VERTEX_BIT;
-    vertexShaderStageInfo.module    = vertexModule;
-    vertexShaderStageInfo.pName     = "main";
+    if(info.vertexPath.has_value())
+    {
+        auto vertexCode = ReadShaderCode(info.vertexPath.value());
+        vertexModule = CreateShaderModule(vertexCode);
 
-    VkPipelineShaderStageCreateInfo fragmentShaderStageInfo{};
-    fragmentShaderStageInfo.sType   = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    fragmentShaderStageInfo.stage   = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fragmentShaderStageInfo.module  = fragmentModule;
-    fragmentShaderStageInfo.pName   = "main";
+        VkPipelineShaderStageCreateInfo vertexShaderStageInfo{};
+        vertexShaderStageInfo.sType     = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        vertexShaderStageInfo.stage     = VK_SHADER_STAGE_VERTEX_BIT;
+        vertexShaderStageInfo.module    = vertexModule;
+        vertexShaderStageInfo.pName     = "main";
 
-    std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = { vertexShaderStageInfo, fragmentShaderStageInfo };
+        shaderStages.push_back(vertexShaderStageInfo);
+    }
+
+    if(info.fragmentPath.has_value())
+    {
+        auto fragmentCode = ReadShaderCode(info.fragmentPath.value());
+        fragmentModule = CreateShaderModule(fragmentCode);
+
+        VkPipelineShaderStageCreateInfo fragmentShaderStageInfo{};
+        fragmentShaderStageInfo.sType   = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        fragmentShaderStageInfo.stage   = VK_SHADER_STAGE_FRAGMENT_BIT;
+        fragmentShaderStageInfo.module  = fragmentModule;
+        fragmentShaderStageInfo.pName   = "main";
+
+        shaderStages.push_back(fragmentShaderStageInfo);
+    }
 
     auto vertexBindingDesc  = Vertex::GetBindingDescription();
     auto vertexAttribDesc   = Vertex::GetAttributeDescriptions();
@@ -159,8 +172,14 @@ Pipeline::Pipeline(Context* context, const PipelineInfo& info)
 
     VK_CHECK(vkCreateGraphicsPipelines(m_Context->GetLogicalDevice(), VK_NULL_HANDLE, 1U, &pipelineInfo, nullptr, &m_Pipeline))
 
-    vkDestroyShaderModule(m_Context->GetLogicalDevice(), vertexModule, nullptr);
-    vkDestroyShaderModule(m_Context->GetLogicalDevice(), fragmentModule, nullptr);
+    if(vertexModule != VK_NULL_HANDLE)
+    {
+        vkDestroyShaderModule(m_Context->GetLogicalDevice(), vertexModule, nullptr);
+    }
+    if(fragmentModule != VK_NULL_HANDLE)
+    {
+        vkDestroyShaderModule(m_Context->GetLogicalDevice(), fragmentModule, nullptr);
+    }
 }
 
 void Pipeline::BeginRender(VkCommandBuffer commandBuffer, const RenderInfo& renderInfo)

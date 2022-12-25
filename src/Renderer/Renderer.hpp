@@ -6,7 +6,7 @@
 #include "DescriptorSet.hpp"
 #include "Buffer/VertexBuffer.hpp"
 #include "Buffer/IndexBuffer.hpp"
-#include "Scene/Lights.hpp"
+#include "Scene/Lighting/Lights.hpp"
 #include "Scene/PostProcessing/Tonemapping.hpp"
 
 class Context;
@@ -14,6 +14,13 @@ class Scene;
 
 class Renderer
 {
+public:
+    struct DirectionalShadowMap
+    {
+        std::unique_ptr<Image>                          perLightImage;
+        VkImageView                                     sharedLightView;
+        std::vector<Lights::DirectionalShadowBuffer>    data;
+    };
 public:
     Renderer(Context* context, Scene* scene);
     ~Renderer();
@@ -30,6 +37,10 @@ private:
     void CreateCommandBuffers();
     void CreateSyncResources();
 private:
+    void CreateShadowPassResources();
+    void CreateShadowPipeline();
+    void UpdateShadowProjections();
+private:
     void CreateGeometryPassResources();
     void CreateGeometryPipeline();
 private:
@@ -44,6 +55,7 @@ private:
 private:
     void BeginFrame();
     void EndFrame();
+    void ShadowPass();
     void GeometryPass();
     void LightingPass();
     void TonemappingPass();
@@ -57,6 +69,11 @@ private:
     std::array<VkSemaphore, Swapchain::FRAMES_IN_FLIGHT>        m_PresentSems;
     uint32_t                                                    m_ImageIndex;
     size_t                                                      m_FrameIndex;
+private:
+    // Shadow Pass Resources
+    std::unique_ptr<Pipeline>                                           m_ShadowPipeline;
+    std::array<DirectionalShadowMap, Swapchain::FRAMES_IN_FLIGHT>       m_DirectionalMaps;
+    VkSampler                                                           m_ShadowMapSampler;
 private:
     // Geometry Pass Resources
     std::unique_ptr<Pipeline>                                               m_GeometryPipeline;
