@@ -89,7 +89,7 @@ Test machine: Ryzen 5 3600, GTX 1660 (6 GB), Windows 11, NVIDIA 531.14.
 ### 1. Clone
 
 ```bash
-git clone --recursive https://github.com/your-name/Cone.git
+git clone --recursive https://github.com/alifayed02/Cone.git
 cd Cone
 ```
 
